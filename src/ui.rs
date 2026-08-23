@@ -11,6 +11,7 @@ use ratatui::widgets::{
 };
 
 use crate::app::{App, Mode, Overlay, StatusKind, filter_commands};
+use crate::search::Hit;
 use crate::editor::Pos;
 use crate::md::inline::{str_width, truncate};
 use crate::md::source;
@@ -41,6 +42,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         Overlay::Prompt(_) => draw_prompt(f, area, app),
         Overlay::Links { sel, broken } => draw_links(f, area, app, *sel, broken),
         Overlay::Headings { sel } => draw_headings(f, area, app, *sel),
+        Overlay::Results { title, hits, sel } => draw_results(f, area, app, title, hits, *sel),
     }
 }
 
@@ -230,6 +232,7 @@ fn draw_hints(f: &mut Frame, area: Rect, app: &App) {
             ("e", "edit"),
             ("n", "new"),
             ("r", "rename"),
+            ("f", "find in files"),
             ("d", "delete"),
             ("/", "filter"),
             ("*", "recurse"),
@@ -241,6 +244,8 @@ fn draw_hints(f: &mut Frame, area: Rect, app: &App) {
             ("e", "edit"),
             ("o", "outline"),
             ("/", "find"),
+            ("f", "find in files"),
+            ("b", "backlinks"),
             ("L", "follow link"),
             ("⌫", "back"),
             ("Tab", "files"),
@@ -1155,6 +1160,66 @@ fn draw_links(f: &mut Frame, area: Rect, app: &App, sel: usize, broken: &[bool])
     }
 }
 
+/// Cross-file search and backlink results: where the match is, then the line
+/// it is on with the matched text picked out.
+fn draw_results(f: &mut Frame, area: Rect, app: &App, title: &str, hits: &[Hit], sel: usize) {
+    let t = app.theme;
+    let rect = centered(area, 96, (hits.len() as u16 + 4).clamp(8, 26));
+    f.render_widget(Clear, rect);
+    let heading = format!("{title}  ·  ⏎ open");
+    let block = overlay_block(t, &heading);
+    let inner = block.inner(rect);
+    f.render_widget(block, rect);
+
+    let capacity = inner.height as usize;
+    let start = sel.saturating_sub(capacity.saturating_sub(1));
+    for (row, hit) in hits.iter().skip(start).take(capacity).enumerate() {
+        let y = inner.y + row as u16;
+        let selected = start + row == sel;
+        let bg = if selected { t.sel_bg } else { t.panel_bg };
+        f.buffer_mut()
+            .set_style(Rect::new(inner.x, y, inner.width, 1), Style::default().bg(bg));
+
+        let where_ = hit
+            .path
+            .strip_prefix(&app.ws.root)
+            .unwrap_or(&hit.path)
+            .display()
+            .to_string();
+        let mut spans = vec![
+            Span::styled(
+                if selected { "▸ " } else { "  " },
+                Style::default().fg(t.accent).bg(bg),
+            ),
+            Span::styled(
+                format!("{where_}:{}", hit.line + 1),
+                Style::default().fg(t.accent).bg(bg),
+            ),
+            Span::styled("  ", Style::default().bg(bg)),
+        ];
+
+        // Split the line so the matched run can carry the search colour. The
+        // hit records a character offset, so slice by characters.
+        let text: Vec<char> = hit.text.chars().collect();
+        let lead = hit.col.min(text.len());
+        let plain = Style::default().fg(t.dim).bg(bg);
+        spans.push(Span::styled(
+            text[..lead].iter().collect::<String>().trim_start().to_string(),
+            plain,
+        ));
+        if lead < text.len() {
+            spans.push(Span::styled(
+                text[lead..].iter().collect::<String>(),
+                Style::default().fg(t.fg).bg(bg),
+            ));
+        }
+
+        let clipped = truncate(&spans, inner.width as usize, plain);
+        f.buffer_mut()
+            .set_line(inner.x, y, &Line::from(clipped), inner.width);
+    }
+}
+
 fn draw_headings(f: &mut Frame, area: Rect, app: &App, sel: usize) {
     let t = app.theme;
     let toc = app.doc.as_ref().map(|d| d.toc.clone()).unwrap_or_default();
@@ -1268,7 +1333,8 @@ fn draw_help(f: &mut Frame, area: Rect, app: &App, scroll: usize) {
         ("n / N", "new file / new directory"),
         ("r", "rename"),
         ("d", "delete (asks first)"),
-        ("/ then type", "fuzzy filter; Esc clears"),
+        ("/ then type", "fuzzy filter on names; Esc clears"),
+        ("f", "search the contents of every file in the tree"),
         ("s / S", "cycle sort field / reverse"),
         (".", "toggle hidden files"),
         ("a", "toggle markdown-only"),
@@ -1287,6 +1353,8 @@ fn draw_help(f: &mut Frame, area: Rect, app: &App, scroll: usize) {
         ("g / G", "top / bottom"),
         ("{ }", "previous / next heading"),
         ("/ n N", "search, next, previous"),
+        ("f", "search every file in the tree"),
+        ("b", "list the documents that link here"),
         ("o", "outline panel (tracks your position)"),
         ("O", "jump to a heading from a list"),
         ("L", "list every link; Enter follows it, g goes to the mention"),

@@ -82,6 +82,16 @@ numbers, resetting checkboxes, and ending the list when you press it twice.
 Press `Ctrl+P` for a searchable palette of every command, or `F1` for the full
 key reference.
 
+## Searching the whole folder
+
+`/` searches the open document. `f` searches **every** markdown file under the
+root and lists the matching lines; `Enter` opens one at that line.
+
+`b` answers the other question — *what links here?* It walks the tree resolving
+every link the way following one would, so `./notes.md`, `notes` and
+`../guide/notes.md#section` are all recognised as pointing at the file you are
+reading.
+
 ## Clipboard
 
 `Ctrl+C` / `Ctrl+X` and `y` (copy the whole document) reach the **system**
@@ -104,7 +114,7 @@ buffer stays as a fallback when the terminal refuses.
 
 ```
 cargo build --release
-cargo test          # 102 tests over the renderer, editor, tables and links
+cargo test          # 106 tests over the renderer, editor, tables, links and search
 ```
 
 Dependencies: `ratatui`, `crossterm`, `pulldown-cmark`, `unicode-width`, `anyhow`.

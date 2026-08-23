@@ -10,6 +10,7 @@ use ratatui::layout::Rect;
 use crate::clipboard;
 use crate::editor::{Editor, PrefixKind};
 use crate::link;
+use crate::search::{self, Hit};
 use crate::md::render::{self, RenderOpts, Rendered};
 use crate::theme::{self, Theme};
 use crate::workspace::{self, Workspace};
@@ -60,6 +61,7 @@ pub enum PromptKind {
     FenceLang,
     SaveAs,
     OpenPath,
+    GrepAll,
 }
 
 pub struct Prompt {
@@ -113,6 +115,7 @@ pub enum Overlay {
     Prompt(Prompt),
     Links { sel: usize, broken: Vec<bool> },
     Headings { sel: usize },
+    Results { title: String, hits: Vec<Hit>, sel: usize },
 }
 
 #[derive(Default)]
@@ -153,6 +156,9 @@ pub struct App {
     pub history: Vec<Crumb>,
     /// A heading to land on once the document we just opened has rendered.
     pending_anchor: Option<String>,
+    /// A source line to land on, likewise deferred until there is a render to
+    /// map it through.
+    pending_src: Option<usize>,
 }
 
 /// Where we were before following a link, so we can go back to it.
@@ -190,6 +196,7 @@ impl App {
             filtering: false,
             history: Vec::new(),
             pending_anchor: None,
+            pending_src: None,
         };
         if let Some(path) = open {
             app.open_path(&path, Mode::Read);
@@ -253,6 +260,11 @@ impl App {
             let text = self.editor.text();
             self.doc = Some(render::render(&text, width, self.theme, self.opts));
             self.render_key = Some(key);
+        }
+        if let Some(src) = self.pending_src.take() {
+            let line = self.doc.as_ref().map(|d| d.line_for_src(src)).unwrap_or(0);
+            self.reader_scroll = line;
+            self.editor.goto_line(src);
         }
         if let Some(anchor) = self.pending_anchor.take() {
             let hit = self.doc.as_ref().and_then(|d| {
@@ -365,6 +377,26 @@ impl App {
                 self.pending_anchor = anchor;
             }
         }
+    }
+
+    /// Which documents point at the one we are reading.
+    fn show_backlinks(&mut self) {
+        let Some(path) = self.editor.path.clone() else {
+            return self.warn("no file open");
+        };
+        let hits = search::backlinks(&self.ws.root, &path);
+        if hits.is_empty() {
+            let name = path.file_name().unwrap_or_default().to_string_lossy();
+            return self.info(format!("nothing links to {name}"));
+        }
+        let name = path.file_name().unwrap_or_default().to_string_lossy().to_string();
+        let n = hits.len();
+        let docs = if n == 1 { "document links" } else { "documents link" };
+        self.overlay = Overlay::Results {
+            title: format!("{n} {docs} to {name}"),
+            hits,
+            sel: 0,
+        };
     }
 
     fn push_crumb(&mut self) {
@@ -541,6 +573,26 @@ impl App {
                 }
                 _ => self.overlay = Overlay::None,
             },
+            Overlay::Results { hits, sel, .. } => match key.code {
+                KeyCode::Down | KeyCode::Char('j') => {
+                    *sel = (*sel + 1).min(hits.len().saturating_sub(1))
+                }
+                KeyCode::Up | KeyCode::Char('k') => *sel = sel.saturating_sub(1),
+                KeyCode::Enter => {
+                    let hit = hits.get(*sel).cloned();
+                    self.overlay = Overlay::None;
+                    if let Some(hit) = hit {
+                        if self.editor.dirty {
+                            self.warn("unsaved changes — save or reload first");
+                            return;
+                        }
+                        self.push_crumb();
+                        self.open_path(&hit.path, Mode::Read);
+                        self.pending_src = Some(hit.line);
+                    }
+                }
+                _ => self.overlay = Overlay::None,
+            },
             Overlay::Headings { sel } => match key.code {
                 KeyCode::Down | KeyCode::Char('j') => *sel += 1,
                 KeyCode::Up | KeyCode::Char('k') => *sel = sel.saturating_sub(1),
@@ -698,6 +750,23 @@ impl App {
                     self.open_path(&path, Mode::Read);
                 }
             }
+            PromptKind::GrepAll => {
+                if value.trim().is_empty() {
+                    return;
+                }
+                let hits = search::grep(&self.ws.root, &value, self.ws.show_hidden);
+                if hits.is_empty() {
+                    return self.warn(format!("no file contains {value:?}"));
+                }
+                let n = hits.len();
+                let lines = if n == 1 { "line" } else { "lines" };
+                self.info(format!("{n} {lines} match {value:?}"));
+                self.overlay = Overlay::Results {
+                    title: format!("{n} {lines} matching \"{value}\""),
+                    hits,
+                    sel: 0,
+                };
+            }
             PromptKind::Find => {
                 self.search.needle = value;
                 self.run_search();
@@ -842,6 +911,7 @@ impl App {
             KeyCode::Up | KeyCode::Char('k') => self.ws.move_selection(-1),
             KeyCode::PageDown => self.ws.move_selection(10),
             KeyCode::PageUp => self.ws.move_selection(-10),
+            KeyCode::Char('f') => return self.run(Cmd::SearchFiles),
             KeyCode::Home | KeyCode::Char('g') => self.ws.select_first(),
             KeyCode::End | KeyCode::Char('G') => self.ws.select_last(),
             KeyCode::Enter | KeyCode::Char('l') | KeyCode::Right => self.open_selected(),
@@ -989,6 +1059,8 @@ impl App {
                 let text = self.editor.text();
                 self.copy(text, "copied the document —");
             }
+            KeyCode::Char('f') => return self.run(Cmd::SearchFiles),
+            KeyCode::Char('b') => return self.run(Cmd::Backlinks),
             KeyCode::Char('}') | KeyCode::Char(']') => self.jump_heading(1),
             KeyCode::Char('{') | KeyCode::Char('[') => self.jump_heading(-1),
             KeyCode::Char('e') | KeyCode::Char('i') => self.mode = Mode::Edit,
@@ -1506,6 +1578,14 @@ impl App {
             Cmd::Links => self.open_links(),
             Cmd::Headings => self.overlay = Overlay::Headings { sel: 0 },
             Cmd::Back => self.go_back(),
+            Cmd::SearchFiles => {
+                self.overlay = Overlay::Prompt(Prompt::new(
+                    PromptKind::GrepAll,
+                    "Search every file",
+                    "",
+                ));
+            }
+            Cmd::Backlinks => self.show_backlinks(),
             Cmd::FormatTable => match self.editor.format_table() {
                 Ok(rows) => self.ok(format!("table aligned — {rows} rows")),
                 Err(why) => self.warn(why),
@@ -1602,6 +1682,8 @@ pub enum Cmd {
     Back,
     CopyAll,
     FormatTable,
+    SearchFiles,
+    Backlinks,
 }
 
 pub struct CommandInfo {
@@ -1639,6 +1721,8 @@ pub const COMMANDS: &[CommandInfo] = &[
     CommandInfo { name: "Back to previous document", keys: "Backspace", group: "View", cmd: Cmd::Back },
     CommandInfo { name: "Copy whole document to clipboard", keys: "y", group: "Edit", cmd: Cmd::CopyAll },
     CommandInfo { name: "Align the table under the cursor", keys: "Alt+A", group: "Edit", cmd: Cmd::FormatTable },
+    CommandInfo { name: "Search every file in the tree", keys: "f", group: "Find", cmd: Cmd::SearchFiles },
+    CommandInfo { name: "What links to this file?", keys: "b", group: "Find", cmd: Cmd::Backlinks },
     CommandInfo { name: "Go to heading…", keys: "O", group: "View", cmd: Cmd::Headings },
     CommandInfo { name: "Document statistics", keys: "", group: "View", cmd: Cmd::WordCount },
     CommandInfo { name: "Help", keys: "F1", group: "View", cmd: Cmd::Help },
