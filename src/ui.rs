@@ -252,6 +252,7 @@ fn draw_hints(f: &mut Frame, area: Rect, app: &App) {
             ("Ctrl+K", "link"),
             ("Alt+1-6", "heading"),
             ("Alt+L/T", "list/task"),
+            ("Alt+A", "align table"),
             ("Ctrl+W", "preview"),
             ("Ctrl+P", "commands"),
             ("Esc", "read"),
@@ -1339,6 +1340,7 @@ fn draw_help(f: &mut Frame, area: Rect, app: &App, scroll: usize) {
         ("Alt+T / Alt+X", "task list / toggle done"),
         ("Alt+Q", "block quote"),
         ("Alt+B", "insert a GFM table"),
+        ("Alt+A", "re-align the pipes of the table under the cursor"),
         ("Alt+-", "horizontal rule"),
     ] {
         lines.push(row(k, d));

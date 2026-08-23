@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 use crate::md::source::{self, BlockKind};
+use crate::md::table;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Default)]
 pub struct Pos {
@@ -746,6 +747,50 @@ impl Editor {
             shift(&mut a);
             self.anchor = Some(a);
         }
+    }
+
+    /// The run of table lines the cursor is sitting in, if any.
+    fn table_range(&self) -> Option<(usize, usize)> {
+        let is_row = |l: &String| {
+            let t = l.trim();
+            !t.is_empty() && t.contains('|')
+        };
+        if !is_row(&self.lines[self.cursor.line]) {
+            return None;
+        }
+        let mut start = self.cursor.line;
+        while start > 0 && is_row(&self.lines[start - 1]) {
+            start -= 1;
+        }
+        let mut end = self.cursor.line;
+        while end + 1 < self.lines.len() && is_row(&self.lines[end + 1]) {
+            end += 1;
+        }
+        Some((start, end))
+    }
+
+    /// Re-align the pipe table under the cursor. Reports what happened so the
+    /// caller can say something useful either way.
+    pub fn format_table(&mut self) -> Result<usize, &'static str> {
+        let Some((start, end)) = self.table_range() else {
+            return Err("cursor is not in a table");
+        };
+        let block: Vec<&str> = self.lines[start..=end].iter().map(String::as_str).collect();
+        let Some(formatted) = table::format(&block) else {
+            return Err("not a table — a header row and a |---| row are required");
+        };
+        if formatted == self.lines[start..=end] {
+            return Err("table is already aligned");
+        }
+        self.checkpoint(EditKind::Other);
+        // The row count never changes, so keeping the cursor on its own line
+        // and clamping the column is enough to stay put.
+        let rows = formatted.len();
+        self.lines.splice(start..=end, formatted);
+        self.cursor.col = self.cursor.col.min(char_len(self.line(self.cursor.line)));
+        self.anchor = None;
+        self.invalidate();
+        Ok(rows)
     }
 
     fn word_range(&self) -> (Pos, Pos) {

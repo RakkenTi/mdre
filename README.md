@@ -70,6 +70,7 @@ Formatting tools work on the selection, or on the word under the cursor:
 | `Alt+X` | toggle a task done |
 | `Alt+Q` | block quote |
 | `Alt+B` / `Alt+-` | insert a table / horizontal rule |
+| `Alt+A` | re-align the pipes of the table under the cursor |
 | `Tab` / `Shift+Tab` | indent / outdent the selection |
 
 Editing conveniences: soft wrap, undo/redo with keystroke coalescing, multi-line
@@ -100,7 +101,7 @@ buffer stays as a fallback when the terminal refuses.
 
 ```
 cargo build --release
-cargo test          # 89 tests over the renderer, editor and links
+cargo test          # 97 tests over the renderer, editor, tables and links
 ```
 
 Dependencies: `ratatui`, `crossterm`, `pulldown-cmark`, `unicode-width`, `anyhow`.

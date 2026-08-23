@@ -1110,6 +1110,7 @@ impl App {
                     self.editor.insert_block(TABLE_SKELETON);
                     return self.info("table inserted");
                 }
+                KeyCode::Char('a') => return self.run(Cmd::FormatTable),
                 KeyCode::Char('c') => {
                     self.overlay = Overlay::Prompt(Prompt::new(
                         PromptKind::FenceLang,
@@ -1505,6 +1506,10 @@ impl App {
             Cmd::Links => self.open_links(),
             Cmd::Headings => self.overlay = Overlay::Headings { sel: 0 },
             Cmd::Back => self.go_back(),
+            Cmd::FormatTable => match self.editor.format_table() {
+                Ok(rows) => self.ok(format!("table aligned — {rows} rows")),
+                Err(why) => self.warn(why),
+            },
             Cmd::CopyAll => {
                 let text = self.editor.text();
                 self.copy(text, "copied the document —");
@@ -1596,6 +1601,7 @@ pub enum Cmd {
     WordCount,
     Back,
     CopyAll,
+    FormatTable,
 }
 
 pub struct CommandInfo {
@@ -1632,6 +1638,7 @@ pub const COMMANDS: &[CommandInfo] = &[
     CommandInfo { name: "Show link list", keys: "L", group: "View", cmd: Cmd::Links },
     CommandInfo { name: "Back to previous document", keys: "Backspace", group: "View", cmd: Cmd::Back },
     CommandInfo { name: "Copy whole document to clipboard", keys: "y", group: "Edit", cmd: Cmd::CopyAll },
+    CommandInfo { name: "Align the table under the cursor", keys: "Alt+A", group: "Edit", cmd: Cmd::FormatTable },
     CommandInfo { name: "Go to heading…", keys: "O", group: "View", cmd: Cmd::Headings },
     CommandInfo { name: "Document statistics", keys: "", group: "View", cmd: Cmd::WordCount },
     CommandInfo { name: "Help", keys: "F1", group: "View", cmd: Cmd::Help },
