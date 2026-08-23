@@ -1,5 +1,6 @@
 //! mdui — a terminal markdown manager: browse, read (GFM-rendered) and edit.
 
+mod ansi;
 mod app;
 mod clipboard;
 mod editor;
@@ -14,7 +15,7 @@ use std::io;
 use std::path::PathBuf;
 use std::time::Duration;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use crossterm::event::{
     self, DisableBracketedPaste, EnableBracketedPaste, Event, KeyEventKind,
 };
@@ -36,6 +37,8 @@ OPTIONS:
     -l, --light      start with the light theme
     -w, --split      start in split view (editor + live preview)
         --no-sidebar hide the file sidebar
+    -r, --render     render PATH to stdout as ANSI and exit (no TUI)
+        --width N    column width for --render (default: terminal, else 80)
     -h, --help       show this help
     -V, --version    show the version
 ";
@@ -46,6 +49,8 @@ struct Args {
     light: bool,
     split: bool,
     sidebar: bool,
+    render: bool,
+    width: Option<u16>,
 }
 
 fn parse_args() -> Result<Option<Args>> {
@@ -55,8 +60,11 @@ fn parse_args() -> Result<Option<Args>> {
         light: false,
         split: false,
         sidebar: true,
+        render: false,
+        width: None,
     };
-    for arg in std::env::args().skip(1) {
+    let mut argv = std::env::args().skip(1);
+    while let Some(arg) = argv.next() {
         match arg.as_str() {
             "-h" | "--help" => {
                 print!("{USAGE}");
@@ -70,6 +78,15 @@ fn parse_args() -> Result<Option<Args>> {
             "-l" | "--light" => args.light = true,
             "-w" | "--split" => args.split = true,
             "--no-sidebar" => args.sidebar = false,
+            "-r" | "--render" => args.render = true,
+            "--width" => {
+                let value = argv
+                    .next()
+                    .ok_or_else(|| anyhow::anyhow!("--width needs a number\n\n{USAGE}"))?;
+                args.width = Some(value.parse().map_err(|_| {
+                    anyhow::anyhow!("--width takes a number, got {value:?}\n\n{USAGE}")
+                })?);
+            }
             other if other.starts_with('-') => {
                 anyhow::bail!("unknown option: {other}\n\n{USAGE}");
             }
@@ -98,6 +115,14 @@ fn main() -> Result<()> {
         }
         None => (cwd, None),
     };
+
+    let palette = if args.light { &theme::LIGHT } else { &theme::DARK };
+    if args.render {
+        let Some(file) = open else {
+            anyhow::bail!("--render needs a markdown file\n\n{USAGE}");
+        };
+        return render_to_stdout(&file, palette, args.width);
+    }
 
     let mut app = App::new(root, open.clone());
     if args.light {
@@ -151,4 +176,23 @@ fn install_panic_hook() {
         ratatui::restore();
         hook(info);
     }));
+}
+
+/// `--render`: draw the document once, straight to stdout, and exit. Piping to
+/// a pager or a file is the point, so the width comes from the terminal only
+/// when there is one.
+fn render_to_stdout(path: &PathBuf, theme: &'static theme::Theme, width: Option<u16>) -> Result<()> {
+    let text = std::fs::read_to_string(path)
+        .with_context(|| format!("cannot read {}", path.display()))?;
+    let width = width
+        .or_else(|| crossterm::terminal::size().ok().map(|(w, _)| w))
+        .unwrap_or(80)
+        .max(20);
+
+    let opts = md::render::RenderOpts { max_width: width, ..Default::default() };
+    let doc = md::render::render(&text, width.min(opts.max_width), theme, opts);
+    let mut out = io::stdout().lock();
+    ansi::write(&mut out, &doc.lines, theme.bg)
+        .or_else(|e| if e.kind() == io::ErrorKind::BrokenPipe { Ok(()) } else { Err(e) })?;
+    Ok(())
 }

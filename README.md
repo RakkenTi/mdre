@@ -9,6 +9,7 @@ cargo run --release -- path/to/notes        # browse a folder
 cargo run --release -- README.md            # open a file in the reader
 cargo run --release -- -e README.md         # open it in the editor
 cargo run --release -- -w README.md         # editor beside a live preview
+cargo run --release -- -r README.md | less -R   # render to stdout, no TUI
 ```
 
 ## Three modes, one buffer
@@ -95,13 +96,15 @@ buffer stays as a fallback when the terminal refuses.
 -l, --light      start with the light theme      (F9 toggles at runtime)
 -w, --split      start in split view
     --no-sidebar hide the file sidebar           (F2 toggles at runtime)
+-r, --render     render PATH to stdout as ANSI and exit
+    --width N    column width for --render
 ```
 
 ## Build
 
 ```
 cargo build --release
-cargo test          # 97 tests over the renderer, editor, tables and links
+cargo test          # 102 tests over the renderer, editor, tables and links
 ```
 
 Dependencies: `ratatui`, `crossterm`, `pulldown-cmark`, `unicode-width`, `anyhow`.
