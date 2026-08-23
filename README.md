@@ -5,12 +5,69 @@ GitHub-Flavored Markdown, and **edit** it with colour-coded source and a set of
 formatting tools — all in one TUI.
 
 ```
-cargo run --release -- path/to/notes        # browse a folder
-cargo run --release -- README.md            # open a file in the reader
-cargo run --release -- -e README.md         # open it in the editor
-cargo run --release -- -w README.md         # editor beside a live preview
-cargo run --release -- -r README.md | less -R   # render to stdout, no TUI
+mdui path/to/notes             # browse a folder
+mdui README.md                 # open a file in the reader
+mdui -e README.md              # open it in the editor
+mdui -w README.md              # editor beside a live preview
+mdui -r README.md | less -R    # render to stdout, no TUI
 ```
+
+## Install
+
+**Linux and macOS**
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/RakkenTi/mdui/main/install.sh | sh
+```
+
+Installs to `~/.local/bin` — no `sudo`, ever. The script verifies the download
+against the release's `SHA256SUMS` before unpacking, and tells you if
+`~/.local/bin` is not on your `PATH`.
+
+Prefer to read it before running it? That is the right instinct:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/RakkenTi/mdui/main/install.sh -o install.sh
+less install.sh
+sh install.sh
+```
+
+Set `MDUI_VERSION=v0.1.0` to pin a version, or `MDUI_INSTALL_DIR=~/bin` to
+install elsewhere.
+
+**Windows**
+
+Download `mdui-<version>-x86_64-pc-windows-msvc.zip` from the
+[releases page](https://github.com/RakkenTi/mdui/releases), then:
+
+1. Extract it to `%LOCALAPPDATA%\Programs\mdui`
+2. Add that folder to your `PATH` — in PowerShell, once:
+
+   ```powershell
+   $dir = "$env:LOCALAPPDATA\Programs\mdui"
+   [Environment]::SetEnvironmentVariable(
+       "Path", [Environment]::GetEnvironmentVariable("Path", "User") + ";$dir", "User")
+   ```
+
+3. Open a new terminal and run `mdui --version`
+
+Use [Windows Terminal](https://aka.ms/terminal) — the legacy console host does
+not handle 24-bit colour. There is no PowerShell install script yet.
+
+**With Cargo**
+
+```sh
+cargo install mdui           # builds from source; needs a Rust toolchain
+cargo binstall mdui          # downloads the prebuilt binary instead
+```
+
+On Windows `cargo install` also needs the Visual Studio Build Tools for the
+MSVC linker; `cargo binstall` does not.
+
+**Prebuilt targets**
+
+`x86_64` and `aarch64` for Linux (static musl — no glibc requirement, works on
+Alpine) and macOS, plus `x86_64` Windows.
 
 ## If you only want to read
 
@@ -142,9 +199,11 @@ heading1 = "#00C2A8"
 A typo is reported in the status bar on startup — `config.toml — line 2:
 unknown option "with"` — rather than silently doing nothing.
 
-## Build
+## Build from source
 
 ```
+git clone https://github.com/RakkenTi/mdui && cd mdui
+cargo run --release -- README.md    # run without installing
 cargo build --release
 cargo test          # 114 tests over the renderer, editor, links, search and config
 ```

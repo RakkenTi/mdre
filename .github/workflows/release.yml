@@ -1,0 +1,142 @@
+# Builds mdui for every supported target and publishes them to a GitHub
+# Release. Every target builds natively — GitHub's free arm64 runners mean no
+# cross-compilation, no Docker and no QEMU.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  # Lets you rehearse the whole matrix without creating a tag.
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # A tag that disagrees with Cargo.toml produces a release whose binaries
+  # report the wrong --version. Cheap to catch, annoying to discover later.
+  verify-tag:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tag must match the crate version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          crate=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          tag=${GITHUB_REF_NAME#v}
+          echo "Cargo.toml: $crate    tag: $tag"
+          [ "$crate" = "$tag" ] || {
+            echo "::error::tag $GITHUB_REF_NAME does not match Cargo.toml version $crate"
+            exit 1
+          }
+
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: cargo test --locked
+
+  build:
+    needs: [verify-tag, test]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # musl keeps the Linux builds static, so there is no minimum glibc
+          # and they run on Alpine too.
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-24.04
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-24.04-arm
+          - target: aarch64-apple-darwin
+            os: macos-15
+          - target: x86_64-apple-darwin
+            os: macos-15
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the Rust target
+        run: rustup target add ${{ matrix.target }}
+
+      # The only C toolchain any target needs; the dependency tree is pure Rust.
+      - name: Install musl tools
+        if: endsWith(matrix.target, '-musl')
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Build
+        run: cargo build --release --locked --target ${{ matrix.target }}
+
+      - name: Package (unix)
+        if: matrix.os != 'windows-latest'
+        shell: bash
+        run: |
+          name="mdui-${GITHUB_REF_NAME:-dev}-${{ matrix.target }}"
+          mkdir "$name"
+          cp target/${{ matrix.target }}/release/mdui "$name/"
+          cp README.md LICENSE config.example.toml "$name/"
+          tar czf "$name.tar.gz" "$name"
+          echo "ASSET=$name.tar.gz" >> "$GITHUB_ENV"
+
+      - name: Package (windows)
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: |
+          name="mdui-${GITHUB_REF_NAME:-dev}-${{ matrix.target }}"
+          mkdir "$name"
+          cp target/${{ matrix.target }}/release/mdui.exe "$name/"
+          cp README.md LICENSE config.example.toml "$name/"
+          7z a "$name.zip" "$name" > /dev/null
+          echo "ASSET=$name.zip" >> "$GITHUB_ENV"
+
+      # Sanity check: a binary that cannot run is worse than a failed build,
+      # because the failure surfaces on a user's machine instead of here.
+      # macos-15 runners are arm64, so the x86_64 build cannot run here without
+      # relying on Rosetta being present. Every other target runs natively.
+      - name: Smoke test
+        if: matrix.target != 'x86_64-apple-darwin'
+        shell: bash
+        run: |
+          bin=target/${{ matrix.target }}/release/mdui
+          [ "${{ matrix.os }}" = "windows-latest" ] && bin="$bin.exe"
+          "$bin" --version
+          "$bin" --render README.md > /dev/null
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: ${{ env.ASSET }}
+          retention-days: 7
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      # One checksum file for the whole release: install.sh fetches it and
+      # verifies before unpacking anything.
+      - name: Checksums
+        run: |
+          cd artifacts
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          generate_release_notes: true
+          fail_on_unmatched_files: true
