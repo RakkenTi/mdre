@@ -8,6 +8,7 @@ use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::layout::Rect;
 
 use crate::editor::{Editor, PrefixKind};
+use crate::link;
 use crate::md::render::{self, RenderOpts, Rendered};
 use crate::theme::{self, Theme};
 use crate::workspace::{self, Workspace};
@@ -109,7 +110,7 @@ pub enum Overlay {
     Help { scroll: usize },
     Palette { input: String, sel: usize },
     Prompt(Prompt),
-    Links { sel: usize },
+    Links { sel: usize, broken: Vec<bool> },
     Headings { sel: usize },
 }
 
@@ -147,6 +148,17 @@ pub struct App {
     pub outline_sel: usize,
     /// In the browser, typing goes to the filter instead of hotkeys.
     pub filtering: bool,
+    /// Documents we followed a link out of, newest last.
+    pub history: Vec<Crumb>,
+    /// A heading to land on once the document we just opened has rendered.
+    pending_anchor: Option<String>,
+}
+
+/// Where we were before following a link, so we can go back to it.
+pub struct Crumb {
+    pub path: PathBuf,
+    pub scroll: usize,
+    pub mode: Mode,
 }
 
 impl App {
@@ -175,6 +187,8 @@ impl App {
             list_area: Rect::ZERO,
             outline_sel: 0,
             filtering: false,
+            history: Vec::new(),
+            pending_anchor: None,
         };
         if let Some(path) = open {
             app.open_path(&path, Mode::Read);
@@ -239,6 +253,21 @@ impl App {
             self.doc = Some(render::render(&text, width, self.theme, self.opts));
             self.render_key = Some(key);
         }
+        if let Some(anchor) = self.pending_anchor.take() {
+            let hit = self.doc.as_ref().and_then(|d| {
+                d.toc
+                    .iter()
+                    .find(|e| link::slug(&e.title) == anchor)
+                    .map(|e| (e.line, e.src_line))
+            });
+            match hit {
+                Some((line, src)) => {
+                    self.reader_scroll = line;
+                    self.editor.goto_line(src);
+                }
+                None => self.warn(format!("no heading #{anchor}")),
+            }
+        }
         self.doc.as_ref().unwrap()
     }
 
@@ -257,6 +286,96 @@ impl App {
             }
             Err(e) => self.err(format!("cannot open {}: {e}", path.display())),
         }
+    }
+
+    // ---------------------------------------------------------- link travel
+
+    /// Open the Links overlay, checking up front which targets actually exist
+    /// so broken ones can be shown as broken.
+    fn open_links(&mut self) {
+        let base = self.editor.path.clone();
+        let broken = self
+            .doc
+            .as_ref()
+            .map(|d| {
+                d.links
+                    .iter()
+                    .map(|l| match link::classify(&l.url, base.as_deref()) {
+                        Some(link::Target::File { path, .. }) => {
+                            link::resolve_file(&path).is_none()
+                        }
+                        Some(_) => false,
+                        None => true,
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        self.overlay = Overlay::Links { sel: 0, broken };
+    }
+
+    /// Go where a link points: another heading, another file, or out to the
+    /// desktop. Anything that moves us to a new file leaves a crumb behind.
+    pub fn follow_link(&mut self, url: &str) {
+        let base = self.editor.path.clone();
+        match link::classify(url, base.as_deref()) {
+            None => self.warn("that link has no target"),
+            Some(link::Target::Anchor(anchor)) => {
+                self.pending_anchor = Some(anchor);
+            }
+            Some(link::Target::External(url)) => match link::open_external(&url) {
+                Ok(()) => self.ok(format!("opened {url}")),
+                Err(e) => self.err(format!("cannot open {url}: {e}")),
+            },
+            Some(link::Target::File { path, anchor }) => {
+                let Some(target) = link::resolve_file(&path) else {
+                    self.err(format!("no such file: {}", path.display()));
+                    return;
+                };
+                if target.is_dir() {
+                    self.ws.enter_dir(target.clone());
+                    self.mode = Mode::Browser;
+                    self.ok(format!("entered {}", target.display()));
+                    return;
+                }
+                if self.editor.dirty {
+                    self.warn("unsaved changes — save or reload before following");
+                    return;
+                }
+                self.push_crumb();
+                self.open_path(&target, Mode::Read);
+                self.pending_anchor = anchor;
+            }
+        }
+    }
+
+    fn push_crumb(&mut self) {
+        if let Some(path) = self.editor.path.clone() {
+            // A long browse should not grow without bound; nobody retraces
+            // more than a few dozen steps.
+            if self.history.len() >= 64 {
+                self.history.remove(0);
+            }
+            self.history.push(Crumb {
+                path,
+                scroll: self.reader_scroll,
+                mode: self.mode,
+            });
+        }
+    }
+
+    /// Retrace one step, restoring the scroll position we left from.
+    pub fn go_back(&mut self) {
+        let Some(crumb) = self.history.pop() else {
+            self.info("no earlier document");
+            return;
+        };
+        if self.editor.dirty {
+            self.warn("unsaved changes — save or reload before going back");
+            self.history.push(crumb);
+            return;
+        }
+        self.open_path(&crumb.path, crumb.mode);
+        self.reader_scroll = crumb.scroll;
     }
 
     pub fn save(&mut self) {
@@ -379,10 +498,13 @@ impl App {
                 KeyCode::PageUp => *scroll = scroll.saturating_sub(10),
                 _ => self.overlay = Overlay::None,
             },
-            Overlay::Links { sel } => match key.code {
+            Overlay::Links { sel, .. } => match key.code {
                 KeyCode::Down | KeyCode::Char('j') => *sel += 1,
                 KeyCode::Up | KeyCode::Char('k') => *sel = sel.saturating_sub(1),
-                KeyCode::Enter => {
+                // Enter travels to the target; `g` goes to where the link sits
+                // in the text, for when you want the surrounding sentence.
+                KeyCode::Enter | KeyCode::Char('g') => {
+                    let goto = key.code == KeyCode::Char('g');
                     let target = self
                         .doc
                         .as_ref()
@@ -390,8 +512,12 @@ impl App {
                         .map(|l| (l.line, l.url.clone()));
                     self.overlay = Overlay::None;
                     if let Some((line, url)) = target {
-                        self.reader_scroll = line.saturating_sub(2);
-                        self.info(format!("link: {url}"));
+                        if goto {
+                            self.reader_scroll = line.saturating_sub(2);
+                            self.info(format!("link: {url}"));
+                        } else {
+                            self.follow_link(&url);
+                        }
                     }
                 }
                 _ => self.overlay = Overlay::None,
@@ -446,7 +572,7 @@ impl App {
             let n = filter_commands(input).len();
             *sel = (*sel).min(n.saturating_sub(1));
         }
-        if let Overlay::Links { sel } = &mut self.overlay {
+        if let Overlay::Links { sel, .. } = &mut self.overlay {
             let n = self.doc.as_ref().map(|d| d.links.len()).unwrap_or(0);
             *sel = (*sel).min(n.saturating_sub(1));
         }
@@ -839,6 +965,7 @@ impl App {
             KeyCode::Char('u') if !ctrl => self.scroll_reader(-page / 2),
             KeyCode::Home | KeyCode::Char('g') => self.reader_scroll = 0,
             KeyCode::End | KeyCode::Char('G') => self.scroll_reader(isize::MAX / 4),
+            KeyCode::Backspace => self.go_back(),
             KeyCode::Char('}') | KeyCode::Char(']') => self.jump_heading(1),
             KeyCode::Char('{') | KeyCode::Char('[') => self.jump_heading(-1),
             KeyCode::Char('e') | KeyCode::Char('i') => self.mode = Mode::Edit,
@@ -847,7 +974,7 @@ impl App {
                 self.outline = !self.outline;
                 self.sync_outline();
             }
-            KeyCode::Char('L') => self.overlay = Overlay::Links { sel: 0 },
+            KeyCode::Char('L') => self.open_links(),
             KeyCode::Char('O') => self.overlay = Overlay::Headings { sel: 0 },
             KeyCode::Char('U') => {
                 self.opts.show_urls = !self.opts.show_urls;
@@ -1352,8 +1479,9 @@ impl App {
                 self.ws.refresh();
             }
             Cmd::Help => self.overlay = Overlay::Help { scroll: 0 },
-            Cmd::Links => self.overlay = Overlay::Links { sel: 0 },
+            Cmd::Links => self.open_links(),
             Cmd::Headings => self.overlay = Overlay::Headings { sel: 0 },
+            Cmd::Back => self.go_back(),
             Cmd::WordCount => {
                 let (lines, words, chars) = self.editor.stats();
                 let mins = (words as f64 / 220.0).ceil().max(1.0) as usize;
@@ -1439,6 +1567,7 @@ pub enum Cmd {
     Links,
     Headings,
     WordCount,
+    Back,
 }
 
 pub struct CommandInfo {
@@ -1473,6 +1602,7 @@ pub const COMMANDS: &[CommandInfo] = &[
     CommandInfo { name: "Toggle editor line numbers", keys: "", group: "View", cmd: Cmd::ToggleLineNumbers },
     CommandInfo { name: "Toggle editor soft wrap", keys: "F6", group: "View", cmd: Cmd::ToggleWrap },
     CommandInfo { name: "Show link list", keys: "L", group: "View", cmd: Cmd::Links },
+    CommandInfo { name: "Back to previous document", keys: "Backspace", group: "View", cmd: Cmd::Back },
     CommandInfo { name: "Go to heading…", keys: "O", group: "View", cmd: Cmd::Headings },
     CommandInfo { name: "Document statistics", keys: "", group: "View", cmd: Cmd::WordCount },
     CommandInfo { name: "Help", keys: "F1", group: "View", cmd: Cmd::Help },

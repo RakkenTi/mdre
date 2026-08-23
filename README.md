@@ -36,8 +36,21 @@ Rendered with `pulldown-cmark` in full GFM mode:
   images, inline HTML, YAML/TOML front matter, definition lists, math
 - Block quotes keep their bar across wrapped lines and arbitrary nesting
 
-Plus an outline panel that tracks your position, a heading jump list, a link
-list, in-document search, and an adjustable text column.
+Plus an outline panel that tracks your position, a heading jump list,
+in-document search, and an adjustable text column.
+
+### Following links
+
+`L` lists every link in the document; `Enter` goes where it points and
+`Backspace` retraces your steps, so a directory of notes reads like a wiki.
+
+- `./spec.md`, `../api.md`, `spec` (the `.md` is optional) and `sub/` (its
+  `README.md`) all resolve relative to the open file
+- `#section` scrolls to that heading; `guide.md#section` opens the file *and*
+  lands on the heading
+- `http(s)` and `mailto:` links are handed to the desktop opener
+- Targets that do not exist are marked `✗` in the list, so a stale cross-
+  reference is visible before you follow it
 
 ## Editor
 
@@ -80,7 +93,7 @@ key reference.
 
 ```
 cargo build --release
-cargo test          # 77 tests over the renderer, editor and highlighter
+cargo test          # 86 tests over the renderer, editor and links
 ```
 
 Dependencies: `ratatui`, `crossterm`, `pulldown-cmark`, `unicode-width`, `anyhow`.

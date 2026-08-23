@@ -39,7 +39,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         Overlay::Help { scroll } => draw_help(f, area, app, *scroll),
         Overlay::Palette { input, sel } => draw_palette(f, area, app, &input.clone(), *sel),
         Overlay::Prompt(_) => draw_prompt(f, area, app),
-        Overlay::Links { sel } => draw_links(f, area, app, *sel),
+        Overlay::Links { sel, broken } => draw_links(f, area, app, *sel, broken),
         Overlay::Headings { sel } => draw_headings(f, area, app, *sel),
     }
 }
@@ -241,7 +241,8 @@ fn draw_hints(f: &mut Frame, area: Rect, app: &App) {
             ("e", "edit"),
             ("o", "outline"),
             ("/", "find"),
-            ("L", "links"),
+            ("L", "follow link"),
+            ("⌫", "back"),
             ("Tab", "files"),
             ("F1", "help"),
         ],
@@ -480,6 +481,11 @@ fn draw_reader(f: &mut Frame, area: Rect, app: &mut App, focused: bool) {
     let needle = app.search.needle.to_lowercase();
     let matches: Vec<usize> = app.search.matches.clone();
     let height = inner.height as usize;
+    // Render first and drop the borrow: following a link to `file.md#section`
+    // can only pick a scroll position once the headings exist, so the scroll we
+    // want is the one left behind by this call, not the one before it. The
+    // second call is a cache hit.
+    app.document(doc_width);
     let prev_scroll = app.reader_scroll;
     let doc = app.document(doc_width);
     let indent = ((width.saturating_sub(doc.width)) / 2) as u16;
@@ -1092,12 +1098,12 @@ fn draw_palette(f: &mut Frame, area: Rect, app: &App, input: &str, sel: usize) {
     }
 }
 
-fn draw_links(f: &mut Frame, area: Rect, app: &App, sel: usize) {
+fn draw_links(f: &mut Frame, area: Rect, app: &App, sel: usize, broken: &[bool]) {
     let t = app.theme;
     let links = app.doc.as_ref().map(|d| d.links.clone()).unwrap_or_default();
     let rect = centered(area, 86, (links.len() as u16 + 4).clamp(6, 24));
     f.render_widget(Clear, rect);
-    let block = overlay_block(t, "links in document");
+    let block = overlay_block(t, "links  ·  ⏎ follow  ·  g go to mention");
     let inner = block.inner(rect);
     f.render_widget(block, rect);
 
@@ -1119,16 +1125,28 @@ fn draw_links(f: &mut Frame, area: Rect, app: &App, sel: usize) {
         let bg = if selected { t.sel_bg } else { t.panel_bg };
         f.buffer_mut()
             .set_style(Rect::new(inner.x, y, inner.width, 1), Style::default().bg(bg));
+        let dead = broken.get(start + row).copied().unwrap_or(false);
         let spans = vec![
             Span::styled(
                 if selected { "▸ " } else { "  " },
                 Style::default().fg(t.accent).bg(bg),
             ),
             Span::styled(
-                format!("{:<28}", link.label),
-                Style::default().fg(t.link).bg(bg),
+                if dead { "✗ " } else { "  " },
+                Style::default().fg(t.err).bg(bg),
             ),
-            Span::styled(link.url.clone(), Style::default().fg(t.link_url).bg(bg)),
+            Span::styled(
+                format!("{:<28}", link.label),
+                Style::default()
+                    .fg(if dead { t.err } else { t.link })
+                    .bg(bg),
+            ),
+            Span::styled(
+                link.url.clone(),
+                Style::default()
+                    .fg(if dead { t.err } else { t.link_url })
+                    .bg(bg),
+            ),
         ];
         let clipped = truncate(&spans, inner.width as usize, Style::default().fg(t.dim).bg(bg));
         f.buffer_mut()
@@ -1270,7 +1288,8 @@ fn draw_help(f: &mut Frame, area: Rect, app: &App, scroll: usize) {
         ("/ n N", "search, next, previous"),
         ("o", "outline panel (tracks your position)"),
         ("O", "jump to a heading from a list"),
-        ("L", "list every link in the document"),
+        ("L", "list every link; Enter follows it, g goes to the mention"),
+        ("Backspace", "back to the document you came from"),
         ("U", "show or hide URLs after link text"),
         ("H", "show or hide the # markers before headings"),
         ("#", "line numbers inside code blocks"),

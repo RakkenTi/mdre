@@ -2,6 +2,7 @@
 
 mod app;
 mod editor;
+mod link;
 mod md;
 mod syntax;
 mod theme;
