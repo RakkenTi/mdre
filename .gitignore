@@ -1,0 +1,16 @@
+# Rust build artifacts
+/target
+**/*.rs.bk
+*.pdb
+
+# Editor / tooling
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.direnv/
+
+# OS cruft
+.DS_Store
+Thumbs.db
