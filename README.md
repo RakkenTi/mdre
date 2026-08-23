@@ -110,11 +110,32 @@ buffer stays as a fallback when the terminal refuses.
     --width N    column width for --render
 ```
 
+## Configuration
+
+`~/.config/mdui/config.toml` (or `$XDG_CONFIG_HOME/mdui/config.toml`) sets the
+defaults; flags on the command line win over it. Copy
+[`config.example.toml`](config.example.toml) to start.
+
+```toml
+[options]
+theme           = "light"
+width           = 88
+heading_markers = false
+markdown_only   = true
+
+[colors]
+accent   = "#FF6600"   # any palette entry, as #RRGGBB or a 0-255 index
+heading1 = "#00C2A8"
+```
+
+A typo is reported in the status bar on startup — `config.toml — line 2:
+unknown option "with"` — rather than silently doing nothing.
+
 ## Build
 
 ```
 cargo build --release
-cargo test          # 106 tests over the renderer, editor, tables, links and search
+cargo test          # 114 tests over the renderer, editor, links, search and config
 ```
 
 Dependencies: `ratatui`, `crossterm`, `pulldown-cmark`, `unicode-width`, `anyhow`.

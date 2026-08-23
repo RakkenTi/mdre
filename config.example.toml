@@ -1,0 +1,34 @@
+# mdui settings — copy to ~/.config/mdui/config.toml
+#
+# Every key is optional; anything left out keeps its default. Command-line
+# flags win over anything written here. Unknown keys are reported in the status
+# bar on startup rather than silently ignored.
+
+[options]
+theme           = "dark"    # dark | light
+mode            = "read"    # read | edit | files — the mode a file opens in
+width           = 92        # text column width in the reader
+tab_width       = 4
+
+heading_markers = true      # show the `#` / `##` before headings
+show_urls       = false     # print the URL after link text
+code_numbers    = false     # line numbers inside fenced code
+line_numbers    = true      # line numbers in the editor
+wrap            = true      # soft-wrap in the editor
+sidebar         = true
+split           = false     # start in editor + live preview
+
+sort            = "name"    # name | size | modified
+hidden          = false     # show dotfiles in the browser
+markdown_only   = false     # list only markdown files
+recursive       = false     # list the whole tree
+
+# Any palette entry can be overridden, as #RRGGBB or a 0-255 terminal index.
+# Names match the fields in src/theme.rs; heading1..heading6 set per-level
+# heading colours.
+[colors]
+# accent      = "#7AA2F7"
+# heading1    = "#FFB454"
+# link        = "#6CB6FF"
+# code_bg     = "#1B1E27"
+# syn_string  = "#9ECE6A"

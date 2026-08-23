@@ -3,6 +3,7 @@
 mod ansi;
 mod app;
 mod clipboard;
+mod config;
 mod editor;
 mod link;
 mod md;
@@ -42,6 +43,9 @@ OPTIONS:
         --width N    column width for --render (default: terminal, else 80)
     -h, --help       show this help
     -V, --version    show the version
+
+Settings are read from $XDG_CONFIG_HOME/mdui/config.toml (default
+~/.config/mdui/config.toml); see config.example.toml. Flags win over the file.
 ";
 
 struct Args {
@@ -117,25 +121,39 @@ fn main() -> Result<()> {
         None => (cwd, None),
     };
 
-    let palette = if args.light { &theme::LIGHT } else { &theme::DARK };
+    // Config first, command line second: a flag the user typed just now should
+    // always beat a preference they wrote down once.
+    let cfg = config::load();
+    let default_theme: &'static theme::Theme = if args.light {
+        &theme::LIGHT
+    } else {
+        cfg.theme.unwrap_or(&theme::DARK)
+    };
+    let palette = cfg.palette(default_theme);
+
     if args.render {
         let Some(file) = open else {
             anyhow::bail!("--render needs a markdown file\n\n{USAGE}");
         };
-        return render_to_stdout(&file, palette, args.width);
+        return render_to_stdout(&file, palette, args.width.or(cfg.width), &cfg);
     }
 
     let mut app = App::new(root, open.clone());
-    if args.light {
-        app.theme = &theme::LIGHT;
-    }
-    app.sidebar = args.sidebar;
+    app.theme = palette;
+    apply_config(&mut app, &cfg);
+
+    app.sidebar = args.sidebar && cfg.sidebar.unwrap_or(true);
     if open.is_some() {
         app.mode = if args.edit { Mode::Edit } else { Mode::Read };
     }
     if args.split && open.is_some() {
         app.split = true;
         app.mode = Mode::Edit;
+    }
+    if !cfg.problems.is_empty() {
+        // The status bar is one line and an absolute path would eat all of it,
+        // so lead with what is actually wrong.
+        app.warn(format!("config.toml — {}", cfg.problems.join("; ")));
     }
 
     let mut terminal = ratatui::init();
@@ -182,7 +200,12 @@ fn install_panic_hook() {
 /// `--render`: draw the document once, straight to stdout, and exit. Piping to
 /// a pager or a file is the point, so the width comes from the terminal only
 /// when there is one.
-fn render_to_stdout(path: &PathBuf, theme: &'static theme::Theme, width: Option<u16>) -> Result<()> {
+fn render_to_stdout(
+    path: &PathBuf,
+    theme: &'static theme::Theme,
+    width: Option<u16>,
+    cfg: &config::Config,
+) -> Result<()> {
     let text = std::fs::read_to_string(path)
         .with_context(|| format!("cannot read {}", path.display()))?;
     let width = width
@@ -190,10 +213,46 @@ fn render_to_stdout(path: &PathBuf, theme: &'static theme::Theme, width: Option<
         .unwrap_or(80)
         .max(20);
 
-    let opts = md::render::RenderOpts { max_width: width, ..Default::default() };
+    let mut opts = md::render::RenderOpts::default();
+    cfg.apply_render_opts(&mut opts);
+    opts.max_width = width;
     let doc = md::render::render(&text, width.min(opts.max_width), theme, opts);
     let mut out = io::stdout().lock();
     ansi::write(&mut out, &doc.lines, theme.bg)
         .or_else(|e| if e.kind() == io::ErrorKind::BrokenPipe { Ok(()) } else { Err(e) })?;
     Ok(())
+}
+
+/// Fold the config file into a freshly built app. Only settings the file
+/// actually mentions are touched; everything else keeps its default.
+fn apply_config(app: &mut App, cfg: &config::Config) {
+    cfg.apply_render_opts(&mut app.opts);
+    if let Some(mode) = cfg.mode {
+        app.mode = mode;
+    }
+    if let Some(sort) = cfg.sort {
+        app.ws.sort = sort;
+    }
+    if let Some(v) = cfg.line_numbers {
+        app.line_numbers = v;
+    }
+    if let Some(v) = cfg.wrap {
+        app.wrap = v;
+    }
+    if let Some(v) = cfg.split {
+        app.split = v;
+    }
+    if let Some(v) = cfg.tab_width {
+        app.editor.tab_width = v;
+    }
+    if let Some(v) = cfg.hidden {
+        app.ws.show_hidden = v;
+    }
+    if let Some(v) = cfg.markdown_only {
+        app.ws.md_only = v;
+    }
+    if let Some(v) = cfg.recursive {
+        app.ws.recursive = v;
+    }
+    app.ws.refresh();
 }

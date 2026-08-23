@@ -262,3 +262,49 @@ impl Theme {
         if self.name == "dark" { &LIGHT } else { &DARK }
     }
 }
+
+/// Naming palette entries from the config file.
+///
+/// The macro keeps the string names and the struct fields from drifting apart:
+/// there is exactly one list, and it is the field list itself.
+macro_rules! color_fields {
+    ($($field:ident),* $(,)?) => {
+        /// Is `name` something `[colors]` can set?
+        pub fn is_color_field(name: &str) -> bool {
+            matches!(name, $(stringify!($field))|*) || heading_index(name).is_some()
+        }
+
+        /// Override one palette entry. Unknown names are rejected by
+        /// [`is_color_field`] before they reach here.
+        pub fn set_color_field(theme: &mut Theme, name: &str, color: Color) {
+            match name {
+                $(stringify!($field) => theme.$field = color,)*
+                _ => {
+                    if let Some(i) = heading_index(name) {
+                        theme.heading[i] = color;
+                    }
+                }
+            }
+        }
+    };
+}
+
+/// `heading1` … `heading6` address the per-level heading colours.
+fn heading_index(name: &str) -> Option<usize> {
+    let level: usize = name.strip_prefix("heading")?.parse().ok()?;
+    (1..=6).contains(&level).then_some(level - 1)
+}
+
+color_fields![
+    bg, panel_bg, fg, dim, faint, accent, accent_alt,
+    border, border_focus, status_bg, status_fg,
+    mode_read_bg, mode_edit_bg, mode_files_bg,
+    sel_bg, sel_fg, cursor_line_bg, match_bg,
+    ok, warn, err, info,
+    rule, bullet, number, task_done, task_todo, quote_bar, quote_fg,
+    link, link_url, image, footnote, table_border, table_head, html, math, meta_fg,
+    code_bg, code_fg, code_gutter, code_label, inline_code_bg, inline_code_fg,
+    syn_keyword, syn_type, syn_const, syn_string, syn_number, syn_comment,
+    syn_func, syn_punct, syn_attr,
+    src_marker, src_gutter, src_gutter_cur, src_whitespace,
+];
