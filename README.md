@@ -12,6 +12,17 @@ cargo run --release -- -w README.md         # editor beside a live preview
 cargo run --release -- -r README.md | less -R   # render to stdout, no TUI
 ```
 
+## If you only want to read
+
+Use [glow](https://github.com/charmbracelet/glow). It renders markdown in the
+terminal beautifully, it is mature, it has a stash and it is one `brew install`
+away. mdui's reader owes it the idea.
+
+mdui earns its place when reading is not the whole job — when you want to edit
+what you are reading, jump between linked notes, search a folder rather than a
+file, or see the source and the render side by side. If none of that is what you
+came for, glow is the better tool and you should reach for it.
+
 ## Three modes, one buffer
 
 | Mode | What it is |
