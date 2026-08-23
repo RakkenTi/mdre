@@ -55,7 +55,7 @@ fn draw_header(f: &mut Frame, area: Rect, app: &App) {
 
     let mut spans = vec![
         Span::styled(
-            " mdui ",
+            " mdre ",
             Style::default()
                 .fg(t.bg)
                 .bg(t.accent)
@@ -534,7 +534,7 @@ fn draw_welcome(f: &mut Frame, area: Rect, app: &App) {
     let t = app.theme;
     let lines: Vec<(&str, Style)> = vec![
         ("", Style::default()),
-        ("  mdui", Style::default().fg(t.accent).add_modifier(Modifier::BOLD)),
+        ("  mdre", Style::default().fg(t.accent).add_modifier(Modifier::BOLD)),
         ("  a terminal markdown manager", Style::default().fg(t.dim)),
         ("", Style::default()),
         ("  Tab      browse files", Style::default().fg(t.fg)),

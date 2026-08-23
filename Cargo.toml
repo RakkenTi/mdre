@@ -1,12 +1,12 @@
 [package]
-name = "mdui"
+name = "mdre"
 version = "0.1.0"
 edition = "2024"
 description = "A terminal markdown manager: browse, read GFM-rendered, and edit markdown"
 license = "MIT"
 readme = "README.md"
-repository = "https://github.com/RakkenTi/mdui"
-homepage = "https://github.com/RakkenTi/mdui"
+repository = "https://github.com/RakkenTi/mdre"
+homepage = "https://github.com/RakkenTi/mdre"
 keywords = ["markdown", "tui", "terminal", "editor", "viewer"]
 categories = ["command-line-utilities", "text-editors"]
 exclude = ["demo/", ".github/", "install.sh"]
@@ -18,7 +18,7 @@ pulldown-cmark = { version = "0.13.4", default-features = false }
 ratatui = "0.30.2"
 unicode-width = "0.2.2"
 
-# Release builds are downloaded, not compiled, by almost everyone who runs mdui,
+# Release builds are downloaded, not compiled, by almost everyone who runs mdre,
 # so trade build time for a smaller binary.
 [profile.release]
 strip = true

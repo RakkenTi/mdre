@@ -1,15 +1,15 @@
-# mdui
+# mdre
 
 A terminal markdown manager. Browse a folder of markdown, **read** it rendered as
 GitHub-Flavored Markdown, and **edit** it with colour-coded source and a set of
 formatting tools — all in one TUI.
 
 ```
-mdui path/to/notes             # browse a folder
-mdui README.md                 # open a file in the reader
-mdui -e README.md              # open it in the editor
-mdui -w README.md              # editor beside a live preview
-mdui -r README.md | less -R    # render to stdout, no TUI
+mdre path/to/notes             # browse a folder
+mdre README.md                 # open a file in the reader
+mdre -e README.md              # open it in the editor
+mdre -w README.md              # editor beside a live preview
+mdre -r README.md | less -R    # render to stdout, no TUI
 ```
 
 ## Install
@@ -17,7 +17,7 @@ mdui -r README.md | less -R    # render to stdout, no TUI
 **Linux and macOS**
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/RakkenTi/mdui/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/RakkenTi/mdre/main/install.sh | sh
 ```
 
 Installs to `~/.local/bin` — no `sudo`, ever. The script verifies the download
@@ -27,29 +27,29 @@ against the release's `SHA256SUMS` before unpacking, and tells you if
 Prefer to read it before running it? That is the right instinct:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/RakkenTi/mdui/main/install.sh -o install.sh
+curl -fsSL https://raw.githubusercontent.com/RakkenTi/mdre/main/install.sh -o install.sh
 less install.sh
 sh install.sh
 ```
 
-Set `MDUI_VERSION=v0.1.0` to pin a version, or `MDUI_INSTALL_DIR=~/bin` to
+Set `MDRE_VERSION=v0.1.0` to pin a version, or `MDRE_INSTALL_DIR=~/bin` to
 install elsewhere.
 
 **Windows**
 
-Download `mdui-<version>-x86_64-pc-windows-msvc.zip` from the
-[releases page](https://github.com/RakkenTi/mdui/releases), then:
+Download `mdre-<version>-x86_64-pc-windows-msvc.zip` from the
+[releases page](https://github.com/RakkenTi/mdre/releases), then:
 
-1. Extract it to `%LOCALAPPDATA%\Programs\mdui`
+1. Extract it to `%LOCALAPPDATA%\Programs\mdre`
 2. Add that folder to your `PATH` — in PowerShell, once:
 
    ```powershell
-   $dir = "$env:LOCALAPPDATA\Programs\mdui"
+   $dir = "$env:LOCALAPPDATA\Programs\mdre"
    [Environment]::SetEnvironmentVariable(
        "Path", [Environment]::GetEnvironmentVariable("Path", "User") + ";$dir", "User")
    ```
 
-3. Open a new terminal and run `mdui --version`
+3. Open a new terminal and run `mdre --version`
 
 Use [Windows Terminal](https://aka.ms/terminal) — the legacy console host does
 not handle 24-bit colour. There is no PowerShell install script yet.
@@ -57,8 +57,8 @@ not handle 24-bit colour. There is no PowerShell install script yet.
 **With Cargo**
 
 ```sh
-cargo install mdui           # builds from source; needs a Rust toolchain
-cargo binstall mdui          # downloads the prebuilt binary instead
+cargo install mdre           # builds from source; needs a Rust toolchain
+cargo binstall mdre          # downloads the prebuilt binary instead
 ```
 
 On Windows `cargo install` also needs the Visual Studio Build Tools for the
@@ -73,9 +73,9 @@ Alpine) and macOS, plus `x86_64` Windows.
 
 Use [glow](https://github.com/charmbracelet/glow). It renders markdown in the
 terminal beautifully, it is mature, it has a stash and it is one `brew install`
-away. mdui's reader owes it the idea.
+away. mdre's reader owes it the idea.
 
-mdui earns its place when reading is not the whole job — when you want to edit
+mdre earns its place when reading is not the whole job — when you want to edit
 what you are reading, jump between linked notes, search a folder rather than a
 file, or see the source and the render side by side. If none of that is what you
 came for, glow is the better tool and you should reach for it.
@@ -180,7 +180,7 @@ buffer stays as a fallback when the terminal refuses.
 
 ## Configuration
 
-`~/.config/mdui/config.toml` (or `$XDG_CONFIG_HOME/mdui/config.toml`) sets the
+`~/.config/mdre/config.toml` (or `$XDG_CONFIG_HOME/mdre/config.toml`) sets the
 defaults; flags on the command line win over it. Copy
 [`config.example.toml`](config.example.toml) to start.
 
@@ -202,7 +202,7 @@ unknown option "with"` — rather than silently doing nothing.
 ## Build from source
 
 ```
-git clone https://github.com/RakkenTi/mdui && cd mdui
+git clone https://github.com/RakkenTi/mdre && cd mdre
 cargo run --release -- README.md    # run without installing
 cargo build --release
 cargo test          # 114 tests over the renderer, editor, links, search and config

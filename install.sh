@@ -1,21 +1,21 @@
 #!/bin/sh
-# mdui installer — Linux and macOS.
+# mdre installer — Linux and macOS.
 #
-#   curl -fsSL https://raw.githubusercontent.com/RakkenTi/mdui/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/RakkenTi/mdre/main/install.sh | sh
 #
 # Downloads the release binary for this machine, checks it against the
 # release's SHA256SUMS, and installs it without ever asking for root.
 #
 # Environment:
-#   MDUI_VERSION       tag to install (default: the latest release)
-#   MDUI_INSTALL_DIR   where to put the binary (default: ~/.local/bin)
+#   MDRE_VERSION       tag to install (default: the latest release)
+#   MDRE_INSTALL_DIR   where to put the binary (default: ~/.local/bin)
 #
 # Windows is not covered here; download the .zip from the releases page.
 
 set -eu
 
-REPO="RakkenTi/mdui"
-INSTALL_DIR="${MDUI_INSTALL_DIR:-$HOME/.local/bin}"
+REPO="RakkenTi/mdre"
+INSTALL_DIR="${MDRE_INSTALL_DIR:-$HOME/.local/bin}"
 
 RED=''; GREEN=''; YELLOW=''; BOLD=''; OFF=''
 if [ -t 2 ] && [ -z "${NO_COLOR:-}" ]; then
@@ -65,7 +65,7 @@ detect_target() {
         aarch64|arm64) arch_part="aarch64" ;;
         *) die "unsupported architecture: $arch
   Prebuilt binaries exist for x86_64 and aarch64 only.
-  You can build from source instead: cargo install mdui" ;;
+  You can build from source instead: cargo install mdre" ;;
     esac
 
     printf '%s-%s' "$arch_part" "$os_part"
@@ -77,7 +77,7 @@ latest_version() {
     tag=$(fetch_stdout "https://api.github.com/repos/$REPO/releases/latest" 2>/dev/null \
         | sed -n 's/.*"tag_name" *: *"\([^"]*\)".*/\1/p' | head -1) || true
     [ -n "${tag:-}" ] || die "could not determine the latest version.
-  Set one explicitly:  MDUI_VERSION=v0.1.0 sh install.sh"
+  Set one explicitly:  MDRE_VERSION=v0.1.0 sh install.sh")
     printf '%s' "$tag"
 }
 
@@ -87,15 +87,15 @@ main() {
     need uname; need tar; need mkdir
 
     target=$(detect_target)
-    version="${MDUI_VERSION:-$(latest_version)}"
+    version="${MDRE_VERSION:-$(latest_version)}"
     case "$version" in v*) ;; *) version="v$version" ;; esac
 
-    archive="mdui-$version-$target.tar.gz"
+    archive="mdre-$version-$target.tar.gz"
     base="https://github.com/$REPO/releases/download/$version"
 
-    say "${BOLD}mdui${OFF} $version  ($target)"
+    say "${BOLD}mdre${OFF} $version  ($target)"
 
-    tmp=$(mktemp -d 2>/dev/null || mktemp -d -t mdui)
+    tmp=$(mktemp -d 2>/dev/null || mktemp -d -t mdre)
     # Leave nothing behind, including when the download fails halfway.
     trap 'rm -rf "$tmp"' EXIT INT TERM
 
@@ -133,26 +133,26 @@ main() {
     fi
 
     tar xzf "$tmp/$archive" -C "$tmp"
-    binary="$tmp/mdui-$version-$target/mdui"
-    [ -f "$binary" ] || binary=$(find "$tmp" -name mdui -type f | head -1)
-    [ -n "$binary" ] && [ -f "$binary" ] || die "the archive did not contain an mdui binary"
+    binary="$tmp/mdre-$version-$target/mdre"
+    [ -f "$binary" ] || binary=$(find "$tmp" -name mdre -type f | head -1)
+    [ -n "$binary" ] && [ -f "$binary" ] || die "the archive did not contain an mdre binary"
 
     mkdir -p "$INSTALL_DIR" || die "cannot create $INSTALL_DIR"
-    # Install to a temporary name and rename, so a running mdui is never
+    # Install to a temporary name and rename, so a running mdre is never
     # replaced underneath itself half-written.
     chmod 755 "$binary"
-    cp "$binary" "$INSTALL_DIR/.mdui.new" || die "cannot write to $INSTALL_DIR
-  Pick somewhere else:  MDUI_INSTALL_DIR=~/bin sh install.sh"
-    mv "$INSTALL_DIR/.mdui.new" "$INSTALL_DIR/mdui"
+    cp "$binary" "$INSTALL_DIR/.mdre.new" || die "cannot write to $INSTALL_DIR
+  Pick somewhere else:  MDRE_INSTALL_DIR=~/bin sh install.sh"
+    mv "$INSTALL_DIR/.mdre.new" "$INSTALL_DIR/mdre"
 
-    say "  ${GREEN}installed${OFF} $INSTALL_DIR/mdui"
+    say "  ${GREEN}installed${OFF} $INSTALL_DIR/mdre"
 
     # An installed binary the shell cannot find is the most common way this
     # goes wrong, so say it plainly instead of leaving them to work it out.
     case ":$PATH:" in
         *":$INSTALL_DIR:"*)
             say ""
-            say "Run ${BOLD}mdui${OFF} to get started, or ${BOLD}mdui --help${OFF}."
+            say "Run ${BOLD}mdre${OFF} to get started, or ${BOLD}mdre --help${OFF}."
             ;;
         *)
             say ""
@@ -161,7 +161,7 @@ main() {
             say ""
             say "    export PATH=\"\$PATH:$INSTALL_DIR\""
             say ""
-            say "  Then restart your shell, or run it now to use mdui immediately."
+            say "  Then restart your shell, or run it now to use mdre immediately."
             ;;
     esac
 }

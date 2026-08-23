@@ -1,4 +1,4 @@
-//! Reading `~/.config/mdui/config.toml`.
+//! Reading `~/.config/mdre/config.toml`.
 //!
 //! A deliberately small slice of TOML — `key = value` under `[section]`
 //! headers, with `#` comments — because that is all a settings file needs and
@@ -39,13 +39,13 @@ pub struct Config {
     pub problems: Vec<String>,
 }
 
-/// Where the settings file lives: `%APPDATA%\mdui\config.toml` on Windows,
-/// `$XDG_CONFIG_HOME/mdui/config.toml` elsewhere, falling back to `~/.config`.
+/// Where the settings file lives: `%APPDATA%\mdre\config.toml` on Windows,
+/// `$XDG_CONFIG_HOME/mdre/config.toml` elsewhere, falling back to `~/.config`.
 ///
 /// Windows sets neither `XDG_CONFIG_HOME` nor `HOME`, so a Unix-only lookup
 /// finds nothing there and the config silently never loads.
 pub fn path() -> Option<PathBuf> {
-    Some(config_dir()?.join("mdui").join("config.toml"))
+    Some(config_dir()?.join("mdre").join("config.toml"))
 }
 
 #[cfg(windows)]
@@ -280,7 +280,7 @@ mod tests {
         // Guards the Windows branch: a Unix-only lookup returns None there,
         // which is how the config file came to be silently ignored.
         let path = path().expect("no config directory on this platform");
-        assert!(path.ends_with("mdui/config.toml") || path.ends_with("mdui\\config.toml"));
+        assert!(path.ends_with("mdre/config.toml") || path.ends_with("mdre\\config.toml"));
         assert!(path.is_absolute());
     }
 

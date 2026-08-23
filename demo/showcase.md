@@ -1,12 +1,12 @@
 ---
 title: GFM Showcase
-author: mdui
+author: mdre
 tags: [markdown, terminal]
 ---
 
 # GFM Showcase
 
-A single document that exercises every renderer path in **mdui** — headings,
+A single document that exercises every renderer path in **mdre** — headings,
 emphasis, lists, tables, alerts, footnotes and highlighted code.
 
 ## Inline formatting

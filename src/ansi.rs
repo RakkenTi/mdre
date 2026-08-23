@@ -1,7 +1,7 @@
-//! Turning rendered lines into ANSI text, for `mdui --render`.
+//! Turning rendered lines into ANSI text, for `mdre --render`.
 //!
 //! The reader draws into a ratatui buffer; a pipe wants bytes. This walks the
-//! same styled lines and emits SGR escapes, so `mdui --render notes.md | less
+//! same styled lines and emits SGR escapes, so `mdre --render notes.md | less
 //! -R` shows exactly what the TUI would.
 
 use std::io::{self, Write};

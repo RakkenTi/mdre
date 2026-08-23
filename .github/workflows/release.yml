@@ -1,4 +1,4 @@
-# Builds mdui for every supported target and publishes them to a GitHub
+# Builds mdre for every supported target and publishes them to a GitHub
 # Release. Every target builds natively — GitHub's free arm64 runners mean no
 # cross-compilation, no Docker and no QEMU.
 name: release
@@ -80,9 +80,9 @@ jobs:
         if: matrix.os != 'windows-latest'
         shell: bash
         run: |
-          name="mdui-${GITHUB_REF_NAME:-dev}-${{ matrix.target }}"
+          name="mdre-${GITHUB_REF_NAME:-dev}-${{ matrix.target }}"
           mkdir "$name"
-          cp target/${{ matrix.target }}/release/mdui "$name/"
+          cp target/${{ matrix.target }}/release/mdre "$name/"
           cp README.md LICENSE config.example.toml "$name/"
           tar czf "$name.tar.gz" "$name"
           echo "ASSET=$name.tar.gz" >> "$GITHUB_ENV"
@@ -91,9 +91,9 @@ jobs:
         if: matrix.os == 'windows-latest'
         shell: bash
         run: |
-          name="mdui-${GITHUB_REF_NAME:-dev}-${{ matrix.target }}"
+          name="mdre-${GITHUB_REF_NAME:-dev}-${{ matrix.target }}"
           mkdir "$name"
-          cp target/${{ matrix.target }}/release/mdui.exe "$name/"
+          cp target/${{ matrix.target }}/release/mdre.exe "$name/"
           cp README.md LICENSE config.example.toml "$name/"
           7z a "$name.zip" "$name" > /dev/null
           echo "ASSET=$name.zip" >> "$GITHUB_ENV"
@@ -106,7 +106,7 @@ jobs:
         if: matrix.target != 'x86_64-apple-darwin'
         shell: bash
         run: |
-          bin=target/${{ matrix.target }}/release/mdui
+          bin=target/${{ matrix.target }}/release/mdre
           [ "${{ matrix.os }}" = "windows-latest" ] && bin="$bin.exe"
           "$bin" --version
           "$bin" --render README.md > /dev/null

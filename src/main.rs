@@ -1,4 +1,5 @@
-//! mdui — a terminal markdown manager: browse, read (GFM-rendered) and edit.
+// MDRE is a rust-based terminal markdown manager that lets users read and write github-flavoured markdown.
+// Opus 5 was used to scaffold the initial 13 commits, after which I manually audited and reviewed everything.
 
 mod ansi;
 mod app;
@@ -26,10 +27,10 @@ use crossterm::execute;
 use app::{App, Mode};
 
 const USAGE: &str = "\
-mdui — terminal markdown manager
+mdre — terminal markdown manager
 
 USAGE:
-    mdui [OPTIONS] [PATH]
+    mdre [OPTIONS] [PATH]
 
 PATH may be a markdown file (opened for reading) or a directory to browse.
 Defaults to the current directory.
@@ -44,8 +45,8 @@ OPTIONS:
     -h, --help       show this help
     -V, --version    show the version
 
-Settings are read from $XDG_CONFIG_HOME/mdui/config.toml (default
-~/.config/mdui/config.toml); see config.example.toml. Flags win over the file.
+Settings are read from $XDG_CONFIG_HOME/mdre/config.toml (default
+~/.config/mdre/config.toml); see config.example.toml. Flags win over the file.
 ";
 
 struct Args {
@@ -76,7 +77,7 @@ fn parse_args() -> Result<Option<Args>> {
                 return Ok(None);
             }
             "-V" | "--version" => {
-                println!("mdui {}", env!("CARGO_PKG_VERSION"));
+                println!("mdre {}", env!("CARGO_PKG_VERSION"));
                 return Ok(None);
             }
             "-e" | "--edit" => args.edit = true,

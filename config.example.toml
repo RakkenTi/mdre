@@ -1,4 +1,4 @@
-# mdui settings — copy to ~/.config/mdui/config.toml
+# mdre settings — copy to ~/.config/mdre/config.toml
 #
 # Every key is optional; anything left out keeps its default. Command-line
 # flags win over anything written here. Unknown keys are reported in the status
