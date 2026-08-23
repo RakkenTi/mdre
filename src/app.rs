@@ -7,6 +7,7 @@ use std::time::{Duration, Instant};
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::layout::Rect;
 
+use crate::clipboard;
 use crate::editor::{Editor, PrefixKind};
 use crate::link;
 use crate::md::render::{self, RenderOpts, Rendered};
@@ -286,6 +287,24 @@ impl App {
             }
             Err(e) => self.err(format!("cannot open {}: {e}", path.display())),
         }
+    }
+
+    // ------------------------------------------------------------- clipboard
+
+    /// Put `text` on both clipboards: ours, which always works, and the
+    /// system's via the terminal, which usually does.
+    fn copy(&mut self, text: String, verb: &str) {
+        if text.is_empty() {
+            return;
+        }
+        let chars = text.chars().count();
+        self.clipboard = text;
+        let note = match clipboard::set(&self.clipboard) {
+            Ok(true) => "",
+            Ok(false) => " (too large for the system clipboard)",
+            Err(_) => " (system clipboard unavailable)",
+        };
+        self.ok(format!("{verb} {chars} chars{note}"));
     }
 
     // ---------------------------------------------------------- link travel
@@ -966,6 +985,10 @@ impl App {
             KeyCode::Home | KeyCode::Char('g') => self.reader_scroll = 0,
             KeyCode::End | KeyCode::Char('G') => self.scroll_reader(isize::MAX / 4),
             KeyCode::Backspace => self.go_back(),
+            KeyCode::Char('y') => {
+                let text = self.editor.text();
+                self.copy(text, "copied the document —");
+            }
             KeyCode::Char('}') | KeyCode::Char(']') => self.jump_heading(1),
             KeyCode::Char('{') | KeyCode::Char('[') => self.jump_heading(-1),
             KeyCode::Char('e') | KeyCode::Char('i') => self.mode = Mode::Edit,
@@ -1125,21 +1148,20 @@ impl App {
                 KeyCode::Char('a') => return self.editor.select_all(),
                 KeyCode::Char('d') => return self.editor.duplicate_line(),
                 KeyCode::Char('l') => {
-                    self.clipboard = self.editor.delete_line();
+                    let line = self.editor.delete_line();
+                    self.copy(line, "cut line —");
                     return;
                 }
                 KeyCode::Char('c') => {
                     if let Some(sel) = self.editor.selected_text() {
-                        self.clipboard = sel;
-                        self.ok("copied to internal clipboard");
+                        self.copy(sel, "copied");
                     }
                     return;
                 }
                 KeyCode::Char('x') => {
                     if let Some(sel) = self.editor.selected_text() {
-                        self.clipboard = sel;
                         self.editor.delete_selection();
-                        self.ok("cut");
+                        self.copy(sel, "cut");
                     }
                     return;
                 }
@@ -1426,7 +1448,8 @@ impl App {
             }
             Cmd::SelectAll => self.editor.select_all(),
             Cmd::DeleteLine => {
-                self.clipboard = self.editor.delete_line();
+                let line = self.editor.delete_line();
+                self.copy(line, "cut line —");
             }
             Cmd::DuplicateLine => self.editor.duplicate_line(),
             Cmd::MoveLineUp => self.editor.move_line(-1),
@@ -1482,6 +1505,10 @@ impl App {
             Cmd::Links => self.open_links(),
             Cmd::Headings => self.overlay = Overlay::Headings { sel: 0 },
             Cmd::Back => self.go_back(),
+            Cmd::CopyAll => {
+                let text = self.editor.text();
+                self.copy(text, "copied the document —");
+            }
             Cmd::WordCount => {
                 let (lines, words, chars) = self.editor.stats();
                 let mins = (words as f64 / 220.0).ceil().max(1.0) as usize;
@@ -1568,6 +1595,7 @@ pub enum Cmd {
     Headings,
     WordCount,
     Back,
+    CopyAll,
 }
 
 pub struct CommandInfo {
@@ -1603,6 +1631,7 @@ pub const COMMANDS: &[CommandInfo] = &[
     CommandInfo { name: "Toggle editor soft wrap", keys: "F6", group: "View", cmd: Cmd::ToggleWrap },
     CommandInfo { name: "Show link list", keys: "L", group: "View", cmd: Cmd::Links },
     CommandInfo { name: "Back to previous document", keys: "Backspace", group: "View", cmd: Cmd::Back },
+    CommandInfo { name: "Copy whole document to clipboard", keys: "y", group: "Edit", cmd: Cmd::CopyAll },
     CommandInfo { name: "Go to heading…", keys: "O", group: "View", cmd: Cmd::Headings },
     CommandInfo { name: "Document statistics", keys: "", group: "View", cmd: Cmd::WordCount },
     CommandInfo { name: "Help", keys: "F1", group: "View", cmd: Cmd::Help },

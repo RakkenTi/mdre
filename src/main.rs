@@ -1,6 +1,7 @@
 //! mdui — a terminal markdown manager: browse, read (GFM-rendered) and edit.
 
 mod app;
+mod clipboard;
 mod editor;
 mod link;
 mod md;

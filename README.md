@@ -80,6 +80,13 @@ numbers, resetting checkboxes, and ending the list when you press it twice.
 Press `Ctrl+P` for a searchable palette of every command, or `F1` for the full
 key reference.
 
+## Clipboard
+
+`Ctrl+C` / `Ctrl+X` and `y` (copy the whole document) reach the **system**
+clipboard via OSC 52 — the terminal does the copying, so it works over SSH,
+inside tmux and inside screen with no X11 or Wayland dependency. The internal
+buffer stays as a fallback when the terminal refuses.
+
 ## Options
 
 ```
@@ -93,7 +100,7 @@ key reference.
 
 ```
 cargo build --release
-cargo test          # 86 tests over the renderer, editor and links
+cargo test          # 89 tests over the renderer, editor and links
 ```
 
 Dependencies: `ratatui`, `crossterm`, `pulldown-cmark`, `unicode-width`, `anyhow`.
