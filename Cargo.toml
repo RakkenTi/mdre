@@ -4,6 +4,12 @@ version = "0.1.0"
 edition = "2024"
 description = "A terminal markdown manager: browse, read GFM-rendered, and edit markdown"
 license = "MIT"
+readme = "README.md"
+repository = "https://github.com/RakkenTi/mdui"
+homepage = "https://github.com/RakkenTi/mdui"
+keywords = ["markdown", "tui", "terminal", "editor", "viewer"]
+categories = ["command-line-utilities", "text-editors"]
+exclude = ["demo/", ".github/", "install.sh"]
 
 [dependencies]
 anyhow = "1.0.104"
@@ -11,3 +17,10 @@ crossterm = "0.29.0"
 pulldown-cmark = { version = "0.13.4", default-features = false }
 ratatui = "0.30.2"
 unicode-width = "0.2.2"
+
+# Release builds are downloaded, not compiled, by almost everyone who runs mdui,
+# so trade build time for a smaller binary.
+[profile.release]
+strip = true
+lto = "fat"
+codegen-units = 1
