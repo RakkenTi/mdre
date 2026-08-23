@@ -39,13 +39,30 @@ pub struct Config {
     pub problems: Vec<String>,
 }
 
-/// `$XDG_CONFIG_HOME/mdui/config.toml`, falling back to `~/.config`.
+/// Where the settings file lives: `%APPDATA%\mdui\config.toml` on Windows,
+/// `$XDG_CONFIG_HOME/mdui/config.toml` elsewhere, falling back to `~/.config`.
+///
+/// Windows sets neither `XDG_CONFIG_HOME` nor `HOME`, so a Unix-only lookup
+/// finds nothing there and the config silently never loads.
 pub fn path() -> Option<PathBuf> {
-    let dir = std::env::var_os("XDG_CONFIG_HOME")
+    Some(config_dir()?.join("mdui").join("config.toml"))
+}
+
+#[cfg(windows)]
+fn config_dir() -> Option<PathBuf> {
+    // Roaming APPDATA is where per-user application settings belong; fall back
+    // to the profile root for the rare environment that does not set it.
+    std::env::var_os("APPDATA")
+        .map(PathBuf::from)
+        .or_else(|| std::env::var_os("USERPROFILE").map(PathBuf::from))
+}
+
+#[cfg(not(windows))]
+fn config_dir() -> Option<PathBuf> {
+    std::env::var_os("XDG_CONFIG_HOME")
         .map(PathBuf::from)
         .filter(|p| p.is_absolute())
-        .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config")))?;
-    Some(dir.join("mdui").join("config.toml"))
+        .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config")))
 }
 
 /// Load the config, or return an empty one if there isn't a file. A malformed
@@ -256,6 +273,15 @@ mod tests {
         let mut c = Config::default();
         parse(text, &mut c);
         c
+    }
+
+    #[test]
+    fn the_config_path_resolves_on_this_platform() {
+        // Guards the Windows branch: a Unix-only lookup returns None there,
+        // which is how the config file came to be silently ignored.
+        let path = path().expect("no config directory on this platform");
+        assert!(path.ends_with("mdui/config.toml") || path.ends_with("mdui\\config.toml"));
+        assert!(path.is_absolute());
     }
 
     #[test]
