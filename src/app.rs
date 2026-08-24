@@ -409,7 +409,7 @@ impl App {
         }
     }
 
-    /// Retrace one step, restoring the scroll position we left from.
+    /// Retrace one step
     pub fn go_back(&mut self) {
         let Some(crumb) = self.history.pop() else {
             self.info("no earlier document");
@@ -460,8 +460,6 @@ impl App {
         self.info(format!("{} theme", self.theme.name));
     }
 
-    // ----------------------------------------------------------- navigation
-
     fn reader_height(&self) -> usize {
         self.reader_area.height.max(1) as usize
     }
@@ -491,8 +489,6 @@ impl App {
             self.open_path(&entry.path, Mode::Read);
         }
     }
-
-    // --------------------------------------------------------- key dispatch
 
     pub fn on_key(&mut self, key: KeyEvent) {
         if key.kind == KeyEventKind::Release {
@@ -531,8 +527,6 @@ impl App {
             _ => {}
         }
     }
-
-    // ------------------------------------------------------------- overlays
 
     fn overlay_key(&mut self, key: KeyEvent) {
         let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
@@ -888,8 +882,6 @@ impl App {
         self.info(format!("match {}/{}", self.search.current + 1, n));
     }
 
-    // -------------------------------------------------------------- browser
-
     fn browser_key(&mut self, key: KeyEvent) {
         let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
         if self.filtering {
@@ -1030,8 +1022,6 @@ impl App {
         }
     }
 
-    // --------------------------------------------------------------- reader
-
     fn reader_key(&mut self, key: KeyEvent) {
         let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
         if self.global_key(key) {
@@ -1137,8 +1127,6 @@ impl App {
                 .unwrap_or(0);
         }
     }
-
-    // --------------------------------------------------------------- editor
 
     fn editor_key(&mut self, key: KeyEvent) {
         let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
@@ -1303,8 +1291,6 @@ impl App {
         }
     }
 
-    // -------------------------------------------------------- global chords
-
     /// Keys that work in every mode. Returns true when handled.
     fn global_key(&mut self, key: KeyEvent) -> bool {
         let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
@@ -1407,8 +1393,6 @@ impl App {
             self.quit = true;
         }
     }
-
-    // ------------------------------------------------------------- commands
 
     pub fn run(&mut self, cmd: Cmd) {
         match cmd {
@@ -1611,8 +1595,6 @@ fn shellexpand(path: &str) -> String {
     }
     path.to_string()
 }
-
-// ------------------------------------------------------------------ commands
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Cmd {
