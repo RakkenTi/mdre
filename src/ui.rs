@@ -60,7 +60,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 fn draw_collapsed_warning(f: &mut Frame, area: Rect, app: &App) {
     let t = app.theme;
     f.buffer_mut()
-        .set_style(area, Style::default().bg(t.body));
+        .set_style(area, Style::default().bg(t.bg));
     let text = "Increase terminal height! Terminal height is too small. Make the terminal taller to see content.";
     f.render_widget(Paragraph::new(text).red(), area);
 }
