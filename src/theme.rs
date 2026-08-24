@@ -1,7 +1,5 @@
-//! Color themes for every surface of the app.
-//!
-//! Everything visual pulls from here so that a single toggle (`F9`) can repaint
-//! the whole UI: reader, editor syntax colors, code-block highlighting, chrome.
+//! Theme config
+//! Single source for theming of all visual elements.
 
 use ratatui::style::{Color, Modifier, Style};
 
