@@ -1,12 +1,9 @@
-# Builds mdre for every supported target and publishes them to a GitHub
-# Release. Every target builds natively — GitHub's free arm64 runners mean no
-# cross-compilation, no Docker and no QEMU.
+# Builds mdre for every supported target and publishes them to Github
 name: release
 
 on:
   push:
     tags: ["v*"]
-  # Lets you rehearse the whole matrix without creating a tag.
   workflow_dispatch:
 
 permissions:
@@ -98,10 +95,6 @@ jobs:
           7z a "$name.zip" "$name" > /dev/null
           echo "ASSET=$name.zip" >> "$GITHUB_ENV"
 
-      # Sanity check: a binary that cannot run is worse than a failed build,
-      # because the failure surfaces on a user's machine instead of here.
-      # macos-15 runners are arm64, so the x86_64 build cannot run here without
-      # relying on Rosetta being present. Every other target runs natively.
       - name: Smoke test
         if: matrix.target != 'x86_64-apple-darwin'
         shell: bash
