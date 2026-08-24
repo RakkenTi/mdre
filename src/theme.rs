@@ -269,13 +269,11 @@ impl Theme {
 /// there is exactly one list, and it is the field list itself.
 macro_rules! color_fields {
     ($($field:ident),* $(,)?) => {
-        /// Is `name` something `[colors]` can set?
         pub fn is_color_field(name: &str) -> bool {
             matches!(name, $(stringify!($field))|*) || heading_index(name).is_some()
         }
 
-        /// Override one palette entry. Unknown names are rejected by
-        /// [`is_color_field`] before they reach here.
+        /// Override one palette entry. Unknown names are checked by is_color_field (above).
         pub fn set_color_field(theme: &mut Theme, name: &str, color: Color) {
             match name {
                 $(stringify!($field) => theme.$field = color,)*
