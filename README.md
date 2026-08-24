@@ -132,7 +132,7 @@ Formatting tools work on the selection, or on the word under the cursor:
 | --- | ---- |
 | `Ctrl+B` / `Alt+I` | bold / italic (toggles off again) |
 | `Alt+S` / `Alt+E` | strikethrough / inline code |
-| `Ctrl+K` | wrap in a link |
+| `Ctrl+L` | wrap in a link |
 | `Alt+C` | wrap in a code fence |
 | `Alt+1`…`Alt+6`, `Alt+0`, `Alt+H` | set / clear / cycle heading level |
 | `Alt+L` `Alt+O` `Alt+T` | bullet, numbered, task list (prefixes swap, never stack) |

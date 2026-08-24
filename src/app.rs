@@ -1213,14 +1213,14 @@ impl App {
                     return;
                 }
                 KeyCode::Char('b') => return self.editor.toggle_wrap("**"),
-                KeyCode::Char('k') => {
+                KeyCode::Char('l') => {
                     self.overlay =
                         Overlay::Prompt(Prompt::new(PromptKind::LinkUrl, "Link URL", "https://"));
                     return;
                 }
                 KeyCode::Char('a') => return self.editor.select_all(),
                 KeyCode::Char('d') => return self.editor.duplicate_line(),
-                KeyCode::Char('l') => {
+                KeyCode::Char('k') => {
                     let line = self.editor.delete_line();
                     self.copy(line, "cut line —");
                     return;
@@ -1732,7 +1732,7 @@ pub const COMMANDS: &[CommandInfo] = &[
     CommandInfo { name: "Strikethrough", keys: "Alt+S", group: "Format", cmd: Cmd::Strike },
     CommandInfo { name: "Inline code", keys: "Alt+E", group: "Format", cmd: Cmd::InlineCode },
     CommandInfo { name: "Code fence…", keys: "Alt+C", group: "Format", cmd: Cmd::CodeFence },
-    CommandInfo { name: "Insert link…", keys: "Ctrl+K", group: "Format", cmd: Cmd::Link },
+    CommandInfo { name: "Insert link…", keys: "Ctrl+L", group: "Format", cmd: Cmd::Link },
     CommandInfo { name: "Heading 1", keys: "Alt+1", group: "Format", cmd: Cmd::Heading(1) },
     CommandInfo { name: "Heading 2", keys: "Alt+2", group: "Format", cmd: Cmd::Heading(2) },
     CommandInfo { name: "Heading 3", keys: "Alt+3", group: "Format", cmd: Cmd::Heading(3) },
@@ -1755,7 +1755,7 @@ pub const COMMANDS: &[CommandInfo] = &[
     CommandInfo { name: "Toggle case sensitivity", keys: "", group: "Edit", cmd: Cmd::ToggleCase },
     CommandInfo { name: "Go to line…", keys: "Ctrl+G", group: "Edit", cmd: Cmd::GotoLine },
     CommandInfo { name: "Select all", keys: "Ctrl+A", group: "Edit", cmd: Cmd::SelectAll },
-    CommandInfo { name: "Delete line", keys: "Ctrl+L", group: "Edit", cmd: Cmd::DeleteLine },
+    CommandInfo { name: "Delete line", keys: "Ctrl+K", group: "Edit", cmd: Cmd::DeleteLine },
     CommandInfo { name: "Duplicate line", keys: "Ctrl+D", group: "Edit", cmd: Cmd::DuplicateLine },
     CommandInfo { name: "Move line up", keys: "Alt+↑", group: "Edit", cmd: Cmd::MoveLineUp },
     CommandInfo { name: "Move line down", keys: "Alt+↓", group: "Edit", cmd: Cmd::MoveLineDown },

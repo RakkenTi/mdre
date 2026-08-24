@@ -33,13 +33,17 @@ impl Sort {
 #[derive(Clone, Debug)]
 pub struct Entry {
     pub path: PathBuf,
-    /// Display name — the file name, or a relative path in recursive mode.
+    /// Display name: File name,
+    /// In recursive mode, the relative path from the workspace root.
     pub name: String,
     pub is_dir: bool,
     pub is_parent: bool,
     pub size: u64,
     pub modified: Option<SystemTime>,
-    /// First `# heading` of a markdown file, when cheap to read.
+    /// The title displayed in the workspace list.
+    /// This is the value of the title key in the front matter, if set.
+    /// Otherwise, the first `# heading` of a markdown file, bounded by a number of bytes from the top.
+    /// Otherwise, no title is displayed
     pub title: Option<String>,
 }
 
