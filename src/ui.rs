@@ -1165,8 +1165,6 @@ fn draw_links(f: &mut Frame, area: Rect, app: &App, sel: usize, broken: &[bool])
     }
 }
 
-/// Search and backlink results: the file and line of the match,
-/// with the matched text highlighted.
 fn draw_results(f: &mut Frame, area: Rect, app: &App, title: &str, hits: &[Hit], sel: usize) {
     let t = app.theme;
     let rect = centered(area, 96, (hits.len() as u16 + 4).clamp(8, 26));
