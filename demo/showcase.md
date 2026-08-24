@@ -16,6 +16,9 @@ Regular text with **bold**, *italic*, ***both***, ~~struck through~~ and
 and bare autolinks like <https://github.com> work too. Here is a footnote
 reference[^why].
 
+## Links Display
+Press Shift+L (uppercase L) in Reader mode [to see this broken link flagged](doesntexist.md). 
+
 [^why]: Footnotes are a GFM extension, rendered inline where they are defined.
 
 ## Lists

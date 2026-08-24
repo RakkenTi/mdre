@@ -204,8 +204,6 @@ impl App {
         app
     }
 
-    // ------------------------------------------------------------- plumbing
-
     pub fn info(&mut self, msg: impl Into<String>) {
         self.set_status(msg, StatusKind::Info);
     }
@@ -301,10 +299,8 @@ impl App {
         }
     }
 
-    // ------------------------------------------------------------- clipboard
-
-    /// Put `text` on both clipboards: ours, which always works, and the
-    /// system's via the terminal, which usually does.
+    /// Copies text into the in-app clipboard,
+    /// as well as the system's clipboard if possible via OSC 52
     fn copy(&mut self, text: String, verb: &str) {
         if text.is_empty() {
             return;
@@ -319,10 +315,10 @@ impl App {
         self.ok(format!("{verb} {chars} chars{note}"));
     }
 
-    // ---------------------------------------------------------- link travel
-
-    /// Open the Links overlay, checking up front which targets actually exist
-    /// so broken ones can be shown as broken.
+    /// Open the Links overlay in Reader mode
+    /// Links are either web links, or local file path links.
+    /// Broken file paths are displayed differently than valid ones (red).
+    /// Web links are not checked, though maybe as an opt-in feature in the future.
     fn open_links(&mut self) {
         let base = self.editor.path.clone();
         let broken = self
@@ -344,8 +340,7 @@ impl App {
         self.overlay = Overlay::Links { sel: 0, broken };
     }
 
-    /// Go where a link points: another heading, another file, or out to the
-    /// desktop. Anything that moves us to a new file leaves a crumb behind.
+    /// Follow a link, opening it in the browser or navigating to a local file.
     pub fn follow_link(&mut self, url: &str) {
         let base = self.editor.path.clone();
         match link::classify(url, base.as_deref()) {
@@ -379,7 +374,7 @@ impl App {
         }
     }
 
-    /// Which documents point at the one we are reading.
+    /// Which documents point at the one currently being read.
     fn show_backlinks(&mut self) {
         let Some(path) = self.editor.path.clone() else {
             return self.warn("no file open");
