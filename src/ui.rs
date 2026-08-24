@@ -4,10 +4,11 @@
 
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Margin, Rect};
+use ratatui::prelude::Stylize;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{
-    Block, BorderType, Borders, Clear, Padding, Scrollbar, ScrollbarOrientation, ScrollbarState,
+    Block, BorderType, Borders, Clear, Padding, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState,
 };
 
 use crate::app::{App, Mode, Overlay, StatusKind, filter_commands};
@@ -20,8 +21,18 @@ use crate::workspace::{human_size, human_time};
 
 pub fn draw(f: &mut Frame, app: &mut App) {
     let area = f.area();
+
+    // 6 is derived from the rows constraints (1+3+1+1)
+    // Anything less than 6 will cause an out-of-bounds error
+    if area.height < 6 {
+        draw_collapsed_warning(f, area);
+        return;
+    }
+
     f.buffer_mut().set_style(area, app.theme.base());
 
+    // If changed make sure to update the number x in area.height < x above
+    // as well as the comment
     let rows = Layout::vertical([
         Constraint::Length(1),
         Constraint::Min(3),
@@ -44,6 +55,11 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         Overlay::Headings { sel } => draw_headings(f, area, app, *sel),
         Overlay::Results { title, hits, sel } => draw_results(f, area, app, title, hits, *sel),
     }
+}
+
+fn draw_collapsed_warning(f: &mut Frame, area: Rect) {
+    let text = "Increase terminal height! Terminal height is too small. Make the terminal taller to see content.";
+    f.render_widget(Paragraph::new(text).red(), area);
 }
 
 // ------------------------------------------------------------------ chrome
