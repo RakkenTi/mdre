@@ -152,8 +152,6 @@ fn main() -> Result<()> {
         app.mode = Mode::Edit;
     }
     if !cfg.problems.is_empty() {
-        // The status bar is one line and an absolute path would eat all of it,
-        // so lead with what is actually wrong.
         app.warn(format!("config.toml — {}", cfg.problems.join("; ")));
     }
 
