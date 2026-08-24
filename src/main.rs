@@ -1,4 +1,4 @@
-// MDRE is a rust-based terminal markdown manager that lets users read and write github-flavoured markdown.
+//! MDRE is a rust-based terminal markdown manager that lets users read and write github-flavoured markdown.
 // Opus 5 was used to scaffold the initial 13 commits, after which I manually audited and reviewed everything.
 
 mod ansi;
@@ -108,6 +108,7 @@ fn main() -> Result<()> {
     };
 
     let cwd = std::env::current_dir()?;
+    // p is expected to be a directory or a file.
     let (root, open) = match args.path {
         Some(p) if p.is_dir() => (p.canonicalize().unwrap_or(p), None),
         Some(p) => {
@@ -122,8 +123,7 @@ fn main() -> Result<()> {
         None => (cwd, None),
     };
 
-    // Config first, command line second: a flag the user typed just now should
-    // always beat a preference they wrote down once.
+    // CLI flags override config values so config is loaded first, before the cli flags.
     let cfg = config::load();
     let default_theme: &'static theme::Theme = if args.light {
         &theme::LIGHT

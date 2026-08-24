@@ -39,19 +39,16 @@ pub struct Config {
     pub problems: Vec<String>,
 }
 
-/// Where the settings file lives: `%APPDATA%\mdre\config.toml` on Windows,
-/// `$XDG_CONFIG_HOME/mdre/config.toml` elsewhere, falling back to `~/.config`.
-///
-/// Windows sets neither `XDG_CONFIG_HOME` nor `HOME`, so a Unix-only lookup
-/// finds nothing there and the config silently never loads.
+/// The path of the config file.
+/// On Windows, it is in `%APPDATA%\mdre\config.toml`.
+/// On other platforms, if set, it is located in `$XDG_CONFIG_HOME/mdre/config.toml`
+/// Otherwise, it is in `~/.config/mdre/config.toml`.
 pub fn path() -> Option<PathBuf> {
     Some(config_dir()?.join("mdre").join("config.toml"))
 }
 
 #[cfg(windows)]
 fn config_dir() -> Option<PathBuf> {
-    // Roaming APPDATA is where per-user application settings belong; fall back
-    // to the profile root for the rare environment that does not set it.
     std::env::var_os("APPDATA")
         .map(PathBuf::from)
         .or_else(|| std::env::var_os("USERPROFILE").map(PathBuf::from))
@@ -65,8 +62,6 @@ fn config_dir() -> Option<PathBuf> {
         .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config")))
 }
 
-/// Load the config, or return an empty one if there isn't a file. A malformed
-/// file never stops the program — it starts on defaults and says why.
 pub fn load() -> Config {
     let mut config = Config::default();
     let Some(path) = path() else {
@@ -74,7 +69,6 @@ pub fn load() -> Config {
     };
     let text = match fs::read_to_string(&path) {
         Ok(text) => text,
-        // Not having a config is the normal case, not an error.
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return config,
         Err(e) => {
             config.problems.push(format!("{}: {e}", path.display()));
@@ -111,8 +105,6 @@ fn parse(text: &str, config: &mut Config) {
         let value = unquote(value.trim());
         let outcome = match section.as_str() {
             "colors" => set_color(config, &key, &value),
-            // A bare key before any section header is treated as an option,
-            // so a one-line config does not need a header.
             "options" | "" => set_option(config, &key, &value),
             _ => Ok(()),
         };
@@ -208,8 +200,7 @@ fn number(value: &str) -> Result<u32, String> {
         .map_err(|_| format!("expected a number, got {value:?}"))
 }
 
-/// Drop a trailing `# comment`, but not a `#` inside a quoted string — which
-/// is exactly where colour values live.
+/// Drop a trailing `# comment` while preserving hashtags inside quotes (ex. hex strings).
 fn strip_comment(line: &str) -> &str {
     let mut quoted = false;
     for (i, c) in line.char_indices() {
@@ -233,10 +224,8 @@ fn unquote(value: &str) -> String {
 
 impl Config {
     /// Build the palette to run with: the chosen theme plus any overrides.
-    ///
-    /// The result is leaked because it lives for the whole process and every
-    /// draw path already takes `&'static Theme`; one small allocation at
-    /// startup is cheaper than threading a lifetime through the UI.
+    /// The result is leaked in order to save constant allocations as the theme is
+    /// referenced by the renderer, which means it is referenced in draw calls.
     pub fn palette(&self, fallback: &'static Theme) -> &'static Theme {
         let base = self.theme.unwrap_or(fallback);
         if self.colors.is_empty() {
