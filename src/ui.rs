@@ -25,7 +25,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     // 6 is derived from the rows constraints (1+3+1+1)
     // Anything less than 6 will cause an out-of-bounds error
     if area.height < 6 {
-        draw_collapsed_warning(f, area);
+        draw_collapsed_warning(f, area, app);
         return;
     }
 
@@ -57,12 +57,13 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     }
 }
 
-fn draw_collapsed_warning(f: &mut Frame, area: Rect) {
+fn draw_collapsed_warning(f: &mut Frame, area: Rect, app: &App) {
+    let t = app.theme;
+    f.buffer_mut()
+        .set_style(area, Style::default().bg(t.body));
     let text = "Increase terminal height! Terminal height is too small. Make the terminal taller to see content.";
     f.render_widget(Paragraph::new(text).red(), area);
 }
-
-// ------------------------------------------------------------------ chrome
 
 fn draw_header(f: &mut Frame, area: Rect, app: &App) {
     let t = app.theme;
@@ -297,8 +298,6 @@ fn draw_hints(f: &mut Frame, area: Rect, app: &App) {
     f.buffer_mut().set_line(area.x, area.y, &line, area.width);
 }
 
-// -------------------------------------------------------------------- body
-
 fn draw_body(f: &mut Frame, area: Rect, app: &mut App) {
     let sidebar_w = if app.sidebar && area.width > 70 { 32 } else { 0 };
     let outline_w = if app.outline && area.width > 100 { 30 } else { 0 };
@@ -346,8 +345,6 @@ fn panel<'a>(app: &App, title: &'a str, focused: bool) -> Block<'a> {
         ))
         .style(Style::default().bg(t.bg))
 }
-
-// ----------------------------------------------------------------- sidebar
 
 fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
     let t = app.theme;
@@ -479,8 +476,6 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
     }
 }
 
-// ------------------------------------------------------------------ reader
-
 fn draw_reader(f: &mut Frame, area: Rect, app: &mut App, focused: bool) {
     let t = app.theme;
     let title = if app.has_file() {
@@ -573,8 +568,6 @@ fn draw_welcome(f: &mut Frame, area: Rect, app: &App) {
     }
 }
 
-// ------------------------------------------------------------------ outline
-
 fn draw_outline(f: &mut Frame, area: Rect, app: &mut App) {
     let t = app.theme;
     let block = panel(app, "outline", false);
@@ -654,8 +647,6 @@ fn draw_outline(f: &mut Frame, area: Rect, app: &mut App) {
             .set_line(inner.x, y, &Line::from(clipped), inner.width);
     }
 }
-
-// ------------------------------------------------------------------- editor
 
 fn draw_editor(f: &mut Frame, area: Rect, app: &mut App) {
     let t = app.theme;
@@ -985,8 +976,6 @@ fn clip_columns(spans: Vec<Span<'static>>, skip: usize, width: usize) -> Vec<Spa
     out
 }
 
-// ----------------------------------------------------------------- overlays
-
 fn centered(area: Rect, width: u16, height: u16) -> Rect {
     let w = width.min(area.width.saturating_sub(2));
     let h = height.min(area.height.saturating_sub(2));
@@ -1176,8 +1165,8 @@ fn draw_links(f: &mut Frame, area: Rect, app: &App, sel: usize, broken: &[bool])
     }
 }
 
-/// Cross-file search and backlink results: where the match is, then the line
-/// it is on with the matched text picked out.
+/// Search and backlink results: the file and line of the match,
+/// with the matched text highlighted.
 fn draw_results(f: &mut Frame, area: Rect, app: &App, title: &str, hits: &[Hit], sel: usize) {
     let t = app.theme;
     let rect = centered(area, 96, (hits.len() as u16 + 4).clamp(8, 26));
