@@ -9,7 +9,6 @@ mod editor;
 mod link;
 mod md;
 mod search;
-mod syntax;
 mod theme;
 mod ui;
 mod workspace;

@@ -16,8 +16,9 @@ use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 
 use crate::md::inline::{self, spans_width, str_width};
-use crate::syntax::{self, HlState, Tok};
 use crate::theme::Theme;
+use tohki as syntax;
+use tohki::{HlState, Tok};
 
 #[derive(Clone, Copy, Debug)]
 pub struct RenderOpts {

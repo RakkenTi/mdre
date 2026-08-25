@@ -16,6 +16,7 @@ anyhow = "1.0.104"
 crossterm = "0.29.0"
 pulldown-cmark = { version = "0.13.4", default-features = false }
 ratatui = "0.30.2"
+tohki = "0.1.0"
 unicode-width = "0.2.2"
 
 # Release builds are downloaded, not compiled, by almost everyone who runs mdre,

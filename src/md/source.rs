@@ -7,8 +7,9 @@
 use ratatui::style::{Modifier, Style};
 use ratatui::text::Span;
 
-use crate::syntax::{self, HlState, Lang, Tok};
 use crate::theme::Theme;
+use tohki as syntax;
+use tohki::{HlState, Lang, Tok};
 
 /// Per-line block classification, computed in one pass over the document.
 #[derive(Clone)]
