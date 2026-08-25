@@ -134,7 +134,7 @@ pub fn highlight_line(line: &str, kind: &BlockKind, theme: &Theme) -> Vec<Span<'
             let mut st = *state;
             syntax::highlight(*lang, line, &mut st)
                 .into_iter()
-                .map(|(text, tok)| Span::styled(text, tok_style(tok, theme)))
+                .map(|tok| Span::styled(tok.text.to_string(), tok_style(tok.kind, theme)))
                 .collect()
         }
         BlockKind::Markdown => markdown_line(line, theme),

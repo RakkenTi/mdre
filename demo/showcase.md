@@ -84,8 +84,10 @@ pub fn render(src: &str, width: u16) -> Vec<Line<'static>> {
 def fib(n: int) -> int:
     """Classic, and still the best demo."""
     a, b = 0, 1
+
     for _ in range(n):
         a, b = b, a + b
+
     return a
 ```
 

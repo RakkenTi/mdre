@@ -17,8 +17,8 @@ use ratatui::text::{Line, Span};
 
 use crate::md::inline::{self, spans_width, str_width};
 use crate::theme::Theme;
-use tohki as syntax;
-use tohki::{HlState, Tok};
+use tohki;
+use tohki::{Tok};
 
 #[derive(Clone, Copy, Debug)]
 pub struct RenderOpts {
@@ -805,8 +805,8 @@ impl<'a> Renderer<'a> {
 
     fn render_code(&mut self, code: &CodeCtx) {
         let theme = self.theme;
-        let lang = syntax::lang_for(&code.info);
-        let label = syntax::display_name(&code.info);
+        let lang = tohki::lang_for(&code.info);
+        let label = tohki::display_name(&code.info);
         let total = self.avail();
         let border = Style::default().fg(theme.code_gutter).bg(theme.code_bg);
         let label_st = Style::default().fg(theme.code_label).bg(theme.code_bg);
@@ -833,16 +833,15 @@ impl<'a> Renderer<'a> {
             Span::styled("╮", border),
         ]);
 
-        let mut state = HlState::default();
-        for (n, raw) in lines.iter().enumerate() {
-            let toks = syntax::highlight(lang, raw, &mut state);
-            let spans: Vec<Span<'static>> = toks
-                .into_iter()
-                .map(|(text, kind)| Span::styled(text, self.tok_style(kind)))
-                .collect();
+        let all_toks = tohki::tokenize(lang, &code.text);
+        for (n, row_tok) in all_toks.iter().enumerate() {
+            let spans: Vec<Span<'static>> = row_tok.into_iter().map(|tok| {
+                Span::styled(tok.text.to_string(), self.tok_style(tok.kind))
+            }).collect();
+
             let wrapped = hard_wrap(&spans, inner);
             for (wi, mut piece) in wrapped.into_iter().enumerate() {
-                let mut row = vec![Span::styled("│ ", border)];
+                let mut row = vec![Span::styled("│", border)];
                 if num_w > 0 {
                     let label = if wi == 0 {
                         format!("{:>w$} ", n + 1, w = num_w - 1)
@@ -855,9 +854,9 @@ impl<'a> Renderer<'a> {
                     ));
                 }
                 row.append(&mut piece);
-                inline::pad_to(&mut row, total.saturating_sub(2), body_bg);
-                row.push(Span::styled(" │", border));
-                self.emit(row);
+                            inline::pad_to(&mut row, total.saturating_sub(2), body_bg);
+                            row.push(Span::styled(" │", border));
+                            self.emit(row);
             }
         }
 
