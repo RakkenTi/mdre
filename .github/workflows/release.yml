@@ -81,8 +81,8 @@ jobs:
           mkdir "$name"
           cp target/${{ matrix.target }}/release/mdre "$name/"
           cp README.md LICENSE config.example.toml "$name/"
-          zip -r "$name.zip" "$name"
-          echo "ASSET=$name.zip" >> "$GITHUB_ENV"
+          tar czf "$name.tar.gz" "$name"
+          echo "ASSET=$name.tar.gz" >> "$GITHUB_ENV"
 
       - name: Package (windows)
         if: matrix.os == 'windows-latest'
