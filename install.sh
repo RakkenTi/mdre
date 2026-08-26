@@ -16,6 +16,8 @@ set -eu
 
 REPO="RakkenTi/mdre"
 INSTALL_DIR="${MDRE_INSTALL_DIR:-$HOME/.local/bin}"
+# Where releases are served from; overridable for mirrors and testing.
+BASE_URL="${MDRE_BASE_URL:-https://github.com/$REPO/releases/download}"
 
 RED=''; GREEN=''; YELLOW=''; BOLD=''; OFF=''
 if [ -t 2 ] && [ -z "${NO_COLOR:-}" ]; then
@@ -91,7 +93,7 @@ main() {
     case "$version" in v*) ;; *) version="v$version" ;; esac
 
     archive="mdre-$version-$target.tar.gz"
-    base="https://github.com/$REPO/releases/download/$version"
+    base="$BASE_URL/$version"
 
     say "${BOLD}mdre${OFF} $version  ($target)"
 
