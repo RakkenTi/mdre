@@ -137,8 +137,8 @@ impl Editor {
         (self.lines.len(), words, chars)
     }
 
-    // ------------------------------------------------------------ undo/redo
-
+    /// Capture a snapshot of the editor state. Serves as a point for undo/redo.
+    /// Undo/redo operations moves through snapshots.
     fn snapshot(&self) -> Snap {
         Snap {
             lines: self.lines.clone(),
@@ -201,8 +201,6 @@ impl Editor {
     pub fn mark_saved(&mut self) {
         self.dirty = false;
     }
-
-    // ------------------------------------------------------------- movement
 
     fn clamp(&mut self) {
         if self.lines.is_empty() {
@@ -345,8 +343,6 @@ impl Editor {
         self.goal_col = None;
     }
 
-    // ------------------------------------------------------------ selection
-
     pub fn selection(&self) -> Option<(Pos, Pos)> {
         let a = self.anchor?;
         if a == self.cursor {
@@ -417,8 +413,6 @@ impl Editor {
         self.invalidate();
         true
     }
-
-    // --------------------------------------------------------------- edits
 
     pub fn insert_char(&mut self, c: char) {
         self.checkpoint(EditKind::Insert);
@@ -650,8 +644,6 @@ impl Editor {
         }
         self.invalidate();
     }
-
-    // ------------------------------------------------------- markdown tools
 
     /// Toggle an inline wrapper (`**`, `*`, `~~`, `` ` ``) around the selection
     /// or, with no selection, around the word under the cursor.
@@ -942,8 +934,6 @@ impl Editor {
         self.anchor = None;
         self.invalidate();
     }
-
-    // --------------------------------------------------------------- search
 
     pub fn find_all(&self, needle: &str, case_sensitive: bool) -> Vec<(Pos, usize)> {
         if needle.is_empty() {

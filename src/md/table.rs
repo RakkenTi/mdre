@@ -15,11 +15,10 @@ pub enum Align {
     Right,
 }
 
-/// Lay `lines` out as an aligned table, or return `None` if they are not one.
-///
-/// The result is `None` rather than a mangled table whenever the input is not
-/// a header row followed by a delimiter row — reformatting something that only
-/// happens to contain pipes would be worse than doing nothing.
+/// Formats a table in the editor (Alt+A)
+/// Automatically align the `|` characters in the table, or creates additional lines to make a table row
+/// Can not be used to create a new table (must be done manually)
+/// If no table is detected, returns `None`
 pub fn format(lines: &[&str]) -> Option<Vec<String>> {
     if lines.len() < 2 {
         return None;
@@ -44,8 +43,6 @@ pub fn format(lines: &[&str]) -> Option<Vec<String>> {
         return None;
     }
 
-    // A body row may be short or long; GFM pads and truncates against the
-    // header, and so do we — but only down to the columns the header declares.
     let columns = align.len().max(rows[0].len());
     let mut align = align;
     align.resize(columns, Align::None);
@@ -115,8 +112,6 @@ fn split_cells(line: &str) -> Vec<String> {
     }
     cells.push(cell);
 
-    // `| a | b |` splits to ["", " a ", " b ", ""] — drop the bookends the
-    // pipes created, but never a cell the author actually wrote.
     if line.starts_with('|') && !cells.is_empty() {
         cells.remove(0);
     }
@@ -198,7 +193,6 @@ mod tests {
     #[test]
     fn short_rows_are_padded_out() {
         let got = fmt("| a | b | c |\n| - | - | - |\n| 1 |").unwrap();
-        // Columns never go below three, the width a `---` delimiter needs.
         assert_eq!(got.lines().last().unwrap(), "| 1   |     |     |");
     }
 

@@ -59,10 +59,12 @@ Press Shift+L (uppercase L) in Reader mode [to see this broken link flagged](doe
 
 | Language | Extension | Highlighted | Notes                  |
 | -------- | :-------: | ----------: | ---------------------- |
-| Rust     | `.rs`     |         yes | keywords, types, attrs |
-| Python   | `.py`     |         yes | docstrings tracked     |
-| JSON     | `.json`   |         yes | keys tinted            |
-| Cobol    | `.cbl`    |          no | falls back to plain    |
+| Rust     | `.rs`     | yes         | keywords, types, attrs |
+| Python   | `.py`     | yes         | docstrings tracked     |
+| JSON     | `.json`   | yes         | keys tinted            |
+| Cobol    | `.cbl`    | no          | falls back to plain    |
+| Hey      | `.hey`    | ok          | sure                   |
+
 
 ## Code
 

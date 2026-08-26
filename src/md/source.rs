@@ -1,8 +1,6 @@
-//! Syntax colouring for *markdown source* — what editor mode displays.
-//!
-//! Unlike the reader, this preserves every character of the source (markers
-//! included) and merely tints it, so the text you edit is exactly the text on
-//! disk. Fenced code blocks are handed to the real code highlighter.
+//! Source is the raw text of the markdown file.
+//! mdre provides only syntax highlighting to differentiate various markdown elements while editing,
+//! and does not change the format in anyway to allow for truthful editing.
 
 use ratatui::style::{Modifier, Style};
 use ratatui::text::Span;
@@ -79,7 +77,16 @@ pub fn scan(lines: &[String]) -> Vec<BlockKind> {
     out
 }
 
-/// Headings discovered by a source scan — powers the outline panel in editor mode.
+/// Outline
+/// Scans the source for the headings.
+/// Headings are space seperated text starting with `#` characters. The text must have atleast a single space after the `#` characters.
+/// Example:
+/// - `# Instructions`
+/// - `##  Step 1`
+/// Non Examples:
+/// - `#Instructions`
+/// The u8 represents the heading depth/level (how many #'s)
+/// usize is the row index used for jumping
 pub fn outline(lines: &[String], kinds: &[BlockKind]) -> Vec<(u8, String, usize)> {
     let mut out = Vec::new();
     for (i, raw) in lines.iter().enumerate() {
@@ -514,9 +521,7 @@ fn inline_spans(s: &str, base: Style, theme: &Theme) -> Vec<Span<'static>> {
     }
     flush!();
 
-    // A trailing double-space is a hard line break. Mark it by *styling* the
-    // spaces rather than substituting glyphs — the editor must never show
-    // characters the buffer doesn't contain.
+    // A trailing double-space is a hard line break.
     if s.ends_with("  ") && !s.trim().is_empty() {
         if let Some(last) = out.last_mut() {
             let content = last.content.to_string();

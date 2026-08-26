@@ -1,8 +1,9 @@
 //! Resolving the targets of markdown links.
 //!
-//! A link in a document is just a string; this module decides what it means —
-//! a heading in the current file, another file on disk, or something the OS
-//! should handle — and turns relative paths into real ones.
+//! A link may represent the following formats:
+//! - A heading in the current file
+//! - A file on disk (+ resolves relative paths)
+//! - A URL
 
 use std::io;
 use std::path::{Component, Path, PathBuf};
@@ -37,6 +38,7 @@ pub fn classify(url: &str, base: Option<&Path>) -> Option<Target> {
         Some((p, frag)) => (p, Some(slug(&decode(frag)))),
         None => (url, None),
     };
+
     // A bare `#` after the path, or a path that was nothing but a fragment.
     let anchor = anchor.filter(|a| !a.is_empty());
     if path.is_empty() {
@@ -127,8 +129,12 @@ pub fn open_external(url: &str) -> io::Result<()> {
         .map(|_| ())
 }
 
-/// True if `url` starts with something like `https:` — but not a Windows
-/// drive letter, which is a path.
+/// A scheme is the prefix of a URL that provides context for the URL.
+/// Examples:
+/// - `https:`
+/// - `file:`
+/// - `mailto:`
+/// This function simply returns `true` if `url` starts with a scheme, `false` otherwise.
 fn has_scheme(url: &str) -> bool {
     let Some(colon) = url.find(':') else {
         return false;

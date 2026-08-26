@@ -305,8 +305,6 @@ impl<'a> Renderer<'a> {
         });
     }
 
-    // ---------------------------------------------------------------- events
-
     fn event(&mut self, event: Event<'_>, range: Range<usize>) {
         match event {
             Event::Start(tag) => self.start(tag, range),
@@ -616,8 +614,6 @@ impl<'a> Renderer<'a> {
                 self.push_style(|s| s.add_modifier(Modifier::DIM))
             }
             Tag::Link { dest_url, .. } => {
-                // Remember where the link's own spans start so the link list
-                // shows the anchor text, not the whole paragraph.
                 self.link = Some((dest_url.to_string(), self.inline.len()));
                 let c = self.theme.link;
                 self.push_style(move |s| s.fg(c).add_modifier(Modifier::UNDERLINED));
@@ -800,8 +796,6 @@ impl<'a> Renderer<'a> {
             }
         }
     }
-
-    // ------------------------------------------------------------- renderers
 
     fn render_code(&mut self, code: &CodeCtx) {
         let theme = self.theme;

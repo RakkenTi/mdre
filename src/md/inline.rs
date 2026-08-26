@@ -86,7 +86,6 @@ pub fn wrap(spans: &[Span<'_>], width: usize) -> Vec<Vec<Span<'static>>> {
             line_w += word_w;
             line.push(Span::styled(chunk.text, chunk.style));
         } else {
-            // A single word wider than the available width: hard-split it.
             let mut buf = String::new();
             let mut buf_w = 0usize;
             for ch in chunk.text.chars() {
@@ -112,7 +111,7 @@ pub fn wrap(spans: &[Span<'_>], width: usize) -> Vec<Vec<Span<'static>>> {
     lines
 }
 
-/// Clip styled spans to `width` columns, appending an ellipsis when cut.
+/// Clip styled spans to `width` columns
 pub fn truncate(spans: &[Span<'_>], width: usize, ellipsis_style: Style) -> Vec<Span<'static>> {
     if spans_width(spans) <= width {
         return spans

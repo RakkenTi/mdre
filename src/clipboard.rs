@@ -1,9 +1,6 @@
-//! Talking to the system clipboard over OSC 52.
+//! Copying to the system clipboard over OSC 52.
 //!
-//! The alternative — linking X11/Wayland/macOS clipboard libraries — buys a
-//! pile of dependencies and still fails on the machine that matters most, the
-//! one at the far end of an SSH session. OSC 52 asks the *terminal emulator*
-//! to do the copying, so it works wherever the terminal is actually running.
+//! https://jvns.ca/til/vim-osc52/
 
 use std::env;
 use std::io::{self, Write};
@@ -13,10 +10,10 @@ use std::io::{self, Write};
 /// sequence that gets truncated into garbage.
 const MAX_ENCODED: usize = 74_000;
 
-/// Ask the terminal to put `text` on the system clipboard.
+/// Requests the terminal to put `text` on the system clipboard.
+/// The text may fail to send if it exceeds the terminal's maximum payload size, but will always be copied to the internal clipboard.
 ///
-/// Returns `Ok(false)` when the text is too large to send — the caller still
-/// has it in the internal clipboard, so nothing is lost.
+/// Returns `Ok(false)` when the text is too large to send.
 pub fn set(text: &str) -> io::Result<bool> {
     let encoded = base64(text.as_bytes());
     if encoded.len() > MAX_ENCODED {

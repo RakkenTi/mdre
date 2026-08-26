@@ -56,10 +56,6 @@ pub fn grep(root: &Path, needle: &str, show_hidden: bool) -> Vec<Hit> {
 }
 
 /// Every line under `root` holding a link that resolves to `target`.
-///
-/// This is link resolution in reverse, so it agrees with what following a link
-/// would actually do: `notes.md`, `./notes`, and `../guide/notes.md#section`
-/// all count as pointing at the same file.
 pub fn backlinks(root: &Path, target: &Path) -> Vec<Hit> {
     let Ok(target) = target.canonicalize() else {
         return Vec::new();
@@ -100,9 +96,7 @@ fn line_links_to(line: &str, source: &Path, target: &Path) -> Option<usize> {
     None
 }
 
-/// Pull `(char offset, url)` out of every `](…)` on a line. Deliberately
-/// shallow: a full parse per line would cost far more than it buys, and a
-/// destination in parentheses is what people actually write.
+/// Pull `(char offset, url)` out of every `](…)` on a line.
 fn urls_in(line: &str) -> Vec<(usize, String)> {
     let chars: Vec<char> = line.chars().collect();
     let mut found = Vec::new();
