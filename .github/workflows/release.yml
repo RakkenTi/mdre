@@ -81,19 +81,19 @@ jobs:
           mkdir "$name"
           cp target/${{ matrix.target }}/release/mdre "$name/"
           cp README.md LICENSE config.example.toml "$name/"
-          tar czf "$name.tar.gz" "$name"
-          echo "ASSET=$name.tar.gz" >> "$GITHUB_ENV"
+          zip -r "$name.zip" "$name"
+          echo "ASSET=$name.zip" >> "$GITHUB_ENV"
 
       - name: Package (windows)
         if: matrix.os == 'windows-latest'
-        shell: bash
+        shell: pwsh
         run: |
-          name="mdre-${GITHUB_REF_NAME:-dev}-${{ matrix.target }}"
-          mkdir "$name"
-          cp target/${{ matrix.target }}/release/mdre.exe "$name/"
-          cp README.md LICENSE config.example.toml "$name/"
-          7z a "$name.zip" "$name" > /dev/null
-          echo "ASSET=$name.zip" >> "$GITHUB_ENV"
+          $name = if (${env:GITHUB_REF_NAME}) { "mdre-${env:GITHUB_REF_NAME}-${{ matrix.target }}" } else { "mdre-dev-${{ matrix.target }}" }
+          New-Item -ItemType Directory -Path $name | Out-Null
+          Copy-Item target/${{ matrix.target }}/release/mdre.exe -Destination $name/
+          Copy-Item README.md, LICENSE, config.example.toml -Destination $name/
+          Compress-Archive -Path $name -DestinationPath "$name.zip"
+          Add-Content $env:GITHUB_ENV "ASSET=$name.zip"
 
       - name: Smoke test
         if: matrix.target != 'x86_64-apple-darwin'

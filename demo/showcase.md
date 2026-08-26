@@ -6,8 +6,8 @@ tags: [markdown, terminal]
 
 # GFM Showcase
 
-A single document that exercises every renderer path in **mdre** — headings,
-emphasis, lists, tables, alerts, footnotes and highlighted code.
+This document exercises every renderer path in mdre: headings, emphasis,
+lists, tables, alerts, footnotes and highlighted code.
 
 ## Inline formatting
 
@@ -17,7 +17,8 @@ and bare autolinks like <https://github.com> work too. Here is a footnote
 reference[^why].
 
 ## Links Display
-Press Shift+L (uppercase L) in Reader mode [to see this broken link flagged](doesntexist.md). 
+
+Press Shift+L (uppercase L) in Reader mode [to see this broken link flagged](doesntexist.md).
 
 [^why]: Footnotes are a GFM extension, rendered inline where they are defined.
 
@@ -63,8 +64,6 @@ Press Shift+L (uppercase L) in Reader mode [to see this broken link flagged](doe
 | Python   | `.py`     | yes         | docstrings tracked     |
 | JSON     | `.json`   | yes         | keys tinted            |
 | Cobol    | `.cbl`    | no          | falls back to plain    |
-| Hey      | `.hey`    | ok          | sure                   |
-
 
 ## Code
 
