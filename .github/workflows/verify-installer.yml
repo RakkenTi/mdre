@@ -1,0 +1,83 @@
+# End-to-end check of the installer: build a release binary, serve it as a
+# fake GitHub release, then run install.sh against it. Proves the script
+# downloads, verifies the checksum, extracts and installs, and that corrupt
+# archives are rejected.
+name: Verify installer
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-musl
+
+      - name: Install musl tools
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+      - name: Build release binary
+        run: cargo build --release --locked --target x86_64-unknown-linux-musl
+
+      - name: Install from a fake release
+        env:
+          MDRE_VERSION: v0.0.0-test
+          MDRE_INSTALL_DIR: ${{ runner.temp }}/installed
+        run: |
+          set -euo pipefail
+          target=x86_64-unknown-linux-musl
+          name="mdre-$MDRE_VERSION-$target"
+          release="$RUNNER_TEMP/fake-release"
+          mkdir -p "$release/$name"
+          cp "target/$target/release/mdre" "$release/$name/"
+          cp README.md LICENSE config.example.toml "$release/$name/"
+          ( cd "$release" \
+              && tar czf "$name.tar.gz" "$name" \
+              && sha256sum "$name.tar.gz" > SHA256SUMS )
+          ( cd "$release" && python3 -m http.server 8765 >/dev/null 2>&1 & )
+          for _ in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8765/ >/dev/null 2>&1 && break
+            sleep 1
+          done
+
+          MDRE_BASE_URL="http://127.0.0.1:8765" sh install.sh
+          test -x "$MDRE_INSTALL_DIR/mdre"
+          cmp "$MDRE_INSTALL_DIR/mdre" "target/$target/release/mdre"
+          "$MDRE_INSTALL_DIR/mdre" --version
+
+      - name: Corrupt archives are rejected
+        env:
+          MDRE_VERSION: v0.0.0-test
+          MDRE_INSTALL_DIR: ${{ runner.temp }}/installed-bad
+        run: |
+          set -euo pipefail
+          target=x86_64-unknown-linux-musl
+          name="mdre-$MDRE_VERSION-$target"
+          release="$RUNNER_TEMP/fake-release-bad"
+          mkdir -p "$release/$name"
+          cp "target/$target/release/mdre" "$release/$name/"
+          ( cd "$release" \
+              && tar czf "$name.tar.gz" "$name" \
+              && sha256sum "$name.tar.gz" > SHA256SUMS )
+          printf tampered | dd of="$release/$name.tar.gz" bs=1 seek=50 conv=notrunc status=none
+          ( cd "$release" && python3 -m http.server 8766 >/dev/null 2>&1 & )
+          for _ in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8766/ >/dev/null 2>&1 && break
+            sleep 1
+          done
+
+          if MDRE_BASE_URL="http://127.0.0.1:8766" sh install.sh 2>bad.log; then
+            echo "installer accepted a corrupt archive" >&2
+            exit 1
+          fi
+          grep -q "checksum mismatch" bad.log \
+            || { echo "expected a checksum error, got:" >&2; cat bad.log >&2; exit 1; }
