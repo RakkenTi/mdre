@@ -72,12 +72,12 @@ detect_target() {
 }
 
 latest_version() {
-    # Read the tag straight out of the redirect to /releases/latest rather than
-    # the API, which rate-limits unauthenticated callers hard enough to matter.
+    # Read the tag from the GitHub API /releases/latest endpoint; an explicit
+    # MDRE_VERSION always wins over this lookup.
     tag=$(fetch_stdout "https://api.github.com/repos/$REPO/releases/latest" 2>/dev/null \
         | sed -n 's/.*"tag_name" *: *"\([^"]*\)".*/\1/p' | head -1) || true
     [ -n "${tag:-}" ] || die "could not determine the latest version.
-  Set one explicitly:  MDRE_VERSION=v0.1.0 sh install.sh")
+  Set one explicitly:  MDRE_VERSION=v0.1.0 sh install.sh"
     printf '%s' "$tag"
 }
 
