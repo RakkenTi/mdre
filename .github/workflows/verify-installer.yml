@@ -1,5 +1,6 @@
 # Installs mdre from the latest GitHub release using the published install
-# script, then renders a demo document to confirm the binary works.
+# script (Linux/macOS) or Scoop (Windows), then renders a demo document to
+# confirm the binary works.
 name: Verify installer
 
 on:
@@ -23,3 +24,15 @@ jobs:
           curl -fsSL https://raw.githubusercontent.com/RakkenTi/mdre/main/demo/showcase.md -o demo.md
           export PATH="$HOME/.local/bin:$PATH"
           mdre -r demo.md >/dev/null
+
+  install-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Install mdre via Scoop and render a demo document
+        run: |
+          irm get.scoop.sh | iex
+          scoop bucket add rakkenti https://github.com/RakkenTi/scoop-bucket
+          scoop install mdre
+          curl.exe -fsSL https://raw.githubusercontent.com/RakkenTi/mdre/main/demo/showcase.md -o demo.md
+          mdre -r demo.md > $null
+          if ($LASTEXITCODE -ne 0) { throw "mdre failed with exit code $LASTEXITCODE" }
