@@ -11,6 +11,18 @@ browsing markdown files from a single TUI.
 curl -fsSL https://raw.githubusercontent.com/RakkenTi/mdre/main/install.sh | sh
 ```
 
+**Scoop**
+
+If you already use [Scoop](https://scoop.sh) on Windows, install mdre from
+the [RakkenTi Scoop bucket](https://github.com/RakkenTi/scoop-bucket):
+
+```powershell
+scoop bucket add rakkenti https://github.com/RakkenTi/scoop-bucket
+scoop install mdre
+```
+
+`scoop update mdre` upgrades to the latest release.
+
 **Windows**
 
 Download the zip from the [releases page](https://github.com/RakkenTi/mdre/releases),
