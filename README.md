@@ -1,7 +1,17 @@
+![Hero](assets/mdre-image5.png)
+
 # mdre
 
 mdre is a terminal markdown (GFM) manager. It supports reading, editing, and
 browsing markdown files from a single TUI.
+
+## Screenshots
+
+| | |
+|---|---|
+| ![1](assets/mdre-image.png) | ![2](assets/mdre-image2.png) |
+
+![4](assets/mdre-image4.png)
 
 ## Install
 
